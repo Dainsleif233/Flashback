@@ -13,6 +13,7 @@
     "MixinMouseHandler",
     "MixinPlayerInfo",
     "MixinWindow",
+    "client.MixinGameRendererShaderSource",
     "audio.MixinAudioLibrary",
     "audio.MixinSoundEngine",
     "export.MixinGlCommandEncoder",
