@@ -260,7 +260,14 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         ReplayServer replayServer = Flashback.getReplayServer();
         Flashback.updateIsInReplay();
 
-        // Do not force-clear loading overlay every tick — that fights vanilla fade and causes flicker
+        // Client can remain on the loading overlay after the replay server is ready.
+        if (replayServer != null && this.gui != null && this.gui.overlay() != null) {
+            // Wait until the integrated server has finished preparing, then dismiss overlay
+            if (replayServer.isRunning() || this.level != null || this.player != null) {
+                this.gui.setOverlay(null);
+            }
+        }
+
         boolean inReplay = replayServer != null;
         if (inReplay != inReplayLast) {
             inReplayLast = inReplay;

@@ -543,7 +543,17 @@ public class ReplayUI {
     public static void drawOverlay() {
         compositeOnTop = null;
 
-        if (!initialized && Minecraft.getInstance().gui.overlay() instanceof LoadingOverlay) {
+        // Do not initialize ImGui/GLFW while vanilla loading screens are up
+        // (GLFW on the 26.3 SDL window can shake the loading UI).
+        net.minecraft.client.gui.screens.Screen screen = Minecraft.getInstance().gui.screen();
+        net.minecraft.client.gui.screens.Overlay overlay = Minecraft.getInstance().gui.overlay();
+        boolean loadingUi = overlay instanceof LoadingOverlay
+            || screen instanceof net.minecraft.client.gui.screens.ProgressScreen
+            || screen instanceof net.minecraft.client.gui.screens.LevelLoadingScreen;
+        if (!initialized && loadingUi) {
+            return;
+        }
+        if (loadingUi) {
             return;
         }
 
