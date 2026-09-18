@@ -459,15 +459,19 @@ public class ReplayUI {
         }
     }
 
+    private static final int IMGUI_MOUSE_BUTTON_COUNT = 5;
+
     public static void feedMouseButton(int button, boolean down) {
         if (button >= 0 && button < mouseDown.length) {
             mouseDown[button] = down;
         }
-        if (imGuiIO != null) {
-            try {
-                imGuiIO.addMouseButtonEvent(button, down);
-            } catch (Throwable ignored) {}
+        // ImGui only accepts buttons [0, ImGuiMouseButton_COUNT)
+        if (button < 0 || button >= IMGUI_MOUSE_BUTTON_COUNT || imGuiIO == null) {
+            return;
         }
+        try {
+            imGuiIO.addMouseButtonEvent(button, down);
+        } catch (Throwable ignored) {}
     }
 
     public static void feedMouseWheel(float x, float y) {
@@ -485,7 +489,7 @@ public class ReplayUI {
         }
         try {
             imGuiIO.addMousePosEvent(mouseX, mouseY);
-            for (int i = 0; i < mouseDown.length; i++) {
+            for (int i = 0; i < IMGUI_MOUSE_BUTTON_COUNT && i < mouseDown.length; i++) {
                 imGuiIO.addMouseButtonEvent(i, mouseDown[i]);
             }
         } catch (Throwable ignored) {}
