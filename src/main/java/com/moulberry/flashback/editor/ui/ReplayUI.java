@@ -488,10 +488,12 @@ public class ReplayUI {
             return;
         }
         try {
-            imGuiIO.addMousePosEvent(mouseX, mouseY);
-            for (int i = 0; i < IMGUI_MOUSE_BUTTON_COUNT && i < mouseDown.length; i++) {
-                imGuiIO.addMouseButtonEvent(i, mouseDown[i]);
+            // Direct IO setters are more reliable than the event queue on this binding
+            imGuiIO.setMousePos(mouseX, mouseY);
+            for (int i = 0; i < IMGUI_MOUSE_BUTTON_COUNT; i++) {
+                imGuiIO.setMouseDown(i, mouseDown[i]);
             }
+            imGuiIO.setMousePosPrev(mouseX, mouseY);
         } catch (Throwable ignored) {}
     }
 
