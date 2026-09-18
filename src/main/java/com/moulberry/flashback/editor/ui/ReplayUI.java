@@ -440,11 +440,8 @@ public class ReplayUI {
         return isFrameHovered && isMouseButtonDown(0);
     }
 
-    @Unique
     private static float mouseX = -10000f;
-    @Unique
     private static float mouseY = -10000f;
-    @Unique
     private static final boolean[] mouseDown = new boolean[8];
 
     public static boolean isMouseButtonDown(int button) {
