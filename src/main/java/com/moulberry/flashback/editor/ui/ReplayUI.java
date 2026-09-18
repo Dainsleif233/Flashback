@@ -122,30 +122,35 @@ public class ReplayUI {
         // Initialize config so that everything starts nicely docked
 
         Path path = Flashback.getConfigDirectory().resolve("imgui.ini");
-        if (!Files.exists(path)) {
+        if (Files.exists(path)) {
+            try {
+                String imguiIni = Files.readString(path);
+                // Corrupted tiny dock (GLFW on SDL reported 32x32) — restore default layout
+                if (imguiIni.contains("Size=32,32") || imguiIni.contains("Size=32,22") || imguiIni.contains("Size=15,22")) {
+                    Files.writeString(path, ReplayUIDefaults.LAYOUT);
+                } else {
+                    boolean modified = false;
+                    if (imguiIni.contains("[Window][Timeline]")) {
+                        imguiIni = imguiIni.replace("[Window][Timeline]", "[Window][###Timeline]");
+                        modified = true;
+                    }
+                    if (imguiIni.contains("[Window][Visuals]")) {
+                        imguiIni = imguiIni.replace("[Window][Visuals]", "[Window][###Visuals]");
+                        modified = true;
+                    }
+                    if (imguiIni.contains("0x8B93E3BD")) {
+                        imguiIni = imguiIni.replace("0x8B93E3BD", "0x7C6B3D9B");
+                        modified = true;
+                    }
+                    if (modified) {
+                        Files.writeString(path, imguiIni);
+                    }
+                }
+            } catch (IOException ignored) {}
+        } else {
             try {
                 Files.writeString(path, ReplayUIDefaults.LAYOUT);
             } catch(IOException ignored) {}
-        } else {
-            try {
-                String imguiIni = Files.readString(path);
-                boolean modified = false;
-                if (imguiIni.contains("[Window][Timeline]")) {
-                    imguiIni = imguiIni.replace("[Window][Timeline]", "[Window][###Timeline]");
-                    modified = true;
-                }
-                if (imguiIni.contains("[Window][Visuals]")) {
-                    imguiIni = imguiIni.replace("[Window][Visuals]", "[Window][###Visuals]");
-                    modified = true;
-                }
-                if (imguiIni.contains("0x8B93E3BD")) {
-                    imguiIni = imguiIni.replace("0x8B93E3BD", "0x7C6B3D9B");
-                    modified = true;
-                }
-                if (modified) {
-                    Files.writeString(path, imguiIni);
-                }
-            } catch (IOException ignored) {}
         }
 
         long oldImGuiContext = ImGui.getCurrentContext().ptr;
@@ -601,6 +606,20 @@ public class ReplayUI {
 
         imguiGlfw.newFrame();
         ImGui.newFrame();
+
+        // 26.3: game window is SDL; GLFW may report ~32x32. Force real MC window metrics.
+        Window mcWindow = Minecraft.getInstance().getWindow();
+        float displayW = mcWindow.getScreenWidth();
+        float displayH = mcWindow.getScreenHeight();
+        if (displayW > 1 && displayH > 1) {
+            ImGuiIO io = ReplayUI.getIO();
+            io.setDisplaySize(displayW, displayH);
+            float fbW = mcWindow.getWidth();
+            float fbH = mcWindow.getHeight();
+            if (fbW > 0 && fbH > 0) {
+                io.setDisplayFramebufferScale(fbW / displayW, fbH / displayH);
+            }
+        }
 
         confirmPressed = ImGui.isKeyPressed(ImGuiKey.Enter);
         cancelPressed = ImGui.isKeyPressed(ImGuiKey.Escape);
