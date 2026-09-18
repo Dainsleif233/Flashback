@@ -21,7 +21,7 @@ public abstract class MixinScoreboard {
 
     @Shadow public abstract void removeObjective(Objective objective);
 
-    @Inject(method = "addObjective", at = @At("HEAD"))
+    @Inject(method = "addObjective", at = @At("HEAD"), require = 0)
     public void addObjective(String string, ObjectiveCriteria objectiveCriteria, Component component, ObjectiveCriteria.RenderType renderType, boolean bl, NumberFormat numberFormat, CallbackInfoReturnable<Objective> cir) {
         if (Flashback.isInReplay() && this.objectivesByName.containsKey(string)) {
             this.removeObjective(this.objectivesByName.get(string));

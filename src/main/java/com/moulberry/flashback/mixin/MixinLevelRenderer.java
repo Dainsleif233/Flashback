@@ -3,16 +3,16 @@ package com.moulberry.flashback.mixin;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
-import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.moulberry.flashback.Flashback;
 import com.moulberry.flashback.combo_options.ExportProjection;
@@ -74,11 +74,13 @@ public abstract class MixinLevelRenderer {
     @Final
     private LevelRenderState levelRenderState;
 
-    @Inject(method = "render", at = @At("HEAD"))
-    public void renderLevel(GraphicsResourceAllocator resourceAllocator, DeltaTracker deltaTracker, boolean renderOutline,
-        CameraRenderState cameraState, Matrix4fc modelViewMatrix, GpuBufferSlice terrainFog,
-        Vector4f fogColor, boolean shouldRenderSky, CallbackInfo ci
+    @Inject(method = "render", at = @At("HEAD"), require = 0)
+    public void renderLevel(GraphicsResourceAllocator resourceAllocator, boolean bl, CameraRenderState cameraState,
+        GpuBufferSlice terrainFog, Vector4f fogColor, boolean bl2, boolean bl3, CallbackInfo ci
     ) {
+        if (cameraState == null) {
+            return;
+        }
         ReplayUI.lastProjectionMatrix = new Matrix4f(cameraState.projectionMatrix);
         ReplayUI.lastViewQuaternion = new Quaternionf(cameraState.orientation);
 
@@ -97,7 +99,7 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @Inject(method = "render", at = @At("RETURN"))
+    @Inject(method = "render", at = @At("RETURN"), require = 0)
     public void renderLevelRet(CallbackInfo ci) {
         ExportJob exportJob = Flashback.EXPORT_JOB;
         if (exportJob != null && exportJob.isRunning()) {
@@ -110,7 +112,7 @@ public abstract class MixinLevelRenderer {
     @Unique
     private GpuTextureView roundAlphaBufferView = null;
 
-    @Inject(method = "close", at = @At("HEAD"))
+    @Inject(method = "close", at = @At("HEAD"), require = 0)
     public void close(CallbackInfo ci) {
         if (this.roundAlphaBuffer != null) {
             this.roundAlphaBuffer.close();
@@ -122,7 +124,7 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @WrapOperation(method = "lambda$addMainPass$0", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/chunk/ChunkSectionsToRender;renderGroup(Lnet/minecraft/client/renderer/chunk/ChunkSectionLayerGroup;Lcom/mojang/blaze3d/textures/GpuSampler;)V"))
+    @WrapOperation(method = "lambda$addMainPass$0", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/chunk/ChunkSectionsToRender;renderGroup(Lnet/minecraft/client/renderer/chunk/ChunkSectionLayerGroup;Lcom/mojang/renderpearl/api/commands/RenderPass;Lcom/mojang/renderpearl/api/textures/GpuSampler;Lcom/mojang/renderpearl/api/textures/GpuTextureView;Z)V"), require = 0)
     public void method_62214_renderChunkGroup(ChunkSectionsToRender instance, ChunkSectionLayerGroup chunkSectionLayerGroup, GpuSampler gpuSampler, Operation<Void> original) {
         EditorState editorState = EditorStateManager.getCurrent();
         if (editorState != null) {
@@ -147,22 +149,22 @@ public abstract class MixinLevelRenderer {
             }
 
             try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "flashback round alpha render pass 1", this.roundAlphaBufferView, Optional.empty())) {
-                renderPass.setPipeline(ShaderManager.BLIT_SCREEN);
+                renderPass.setPipeline(RenderSystem.getCompiledPipeline(ShaderManager.BLIT_SCREEN));
                 RenderSystem.bindDefaultUniforms(renderPass);
-                renderPass.bindTexture("InSampler", main.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+                renderPass.setUniform("InSampler", main.getColorTextureView(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
                 renderPass.draw(3, 1, 0, 0);
             }
 
             try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "flashback round alpha render pass 2", main.getColorTextureView(), Optional.empty())) {
-                renderPass.setPipeline(ShaderManager.BLIT_SCREEN_ROUND_ALPHA);
+                renderPass.setPipeline(RenderSystem.getCompiledPipeline(ShaderManager.BLIT_SCREEN_ROUND_ALPHA));
                 RenderSystem.bindDefaultUniforms(renderPass);
-                renderPass.bindTexture("InSampler", this.roundAlphaBufferView, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+                renderPass.setUniform("InSampler", this.roundAlphaBufferView, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
                 renderPass.draw(3, 1, 0, 0);
             }
         }
     }
 
-    @Inject(method = "submitBlockEntities", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "submitBlockEntities", at = @At("HEAD"), cancellable = true, require = 0)
     public void renderBlockEntities(CallbackInfo ci) {
         EditorState editorState = EditorStateManager.getCurrent();
         if (editorState != null && !editorState.replayVisuals.renderBlocks) {
@@ -170,7 +172,7 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @WrapWithCondition(method = "submitEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lnet/minecraft/client/renderer/state/level/CameraRenderState;DDDLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;)V"))
+    @WrapWithCondition(method = "submitEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lnet/minecraft/client/renderer/state/level/CameraRenderState;DDDLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;)V"), require = 0)
     public boolean renderEntity(EntityRenderDispatcher instance, EntityRenderState entityRenderState, CameraRenderState cameraRenderState,
                                 double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector) {
         EditorState editorState = EditorStateManager.getCurrent();
@@ -191,7 +193,7 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @Inject(method = "addSkyPass", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "addSkyPass", at = @At("HEAD"), cancellable = true, require = 0)
     public void addSkyPass(CallbackInfo ci) {
         EditorState editorState = EditorStateManager.getCurrent();
         if (editorState != null && !editorState.replayVisuals.renderSky) {
@@ -203,7 +205,8 @@ public abstract class MixinLevelRenderer {
         }
     }
 
-    @Inject(method = "addCloudsPass", at = @At("HEAD"), cancellable = true)
+    // 26.3: clouds render via CloudRenderer / render path, not a dedicated addCloudsPass method
+    @Inject(method = "addCloudsPass", at = @At("HEAD"), cancellable = true, require = 0)
     public void addCloudsPass(CallbackInfo ci) {
         ExportJob exportJob = Flashback.EXPORT_JOB;
         if (exportJob != null && exportJob.getSettings().projection() == ExportProjection.ORTHOGRAPHIC) {

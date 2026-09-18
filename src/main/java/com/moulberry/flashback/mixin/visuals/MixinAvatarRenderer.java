@@ -20,7 +20,7 @@ import java.util.EnumSet;
 @Mixin(AvatarRenderer.class)
 public class MixinAvatarRenderer {
 
-    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("HEAD"))
+    @Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("HEAD"), require = 0)
     public void extractRenderState(Avatar avatar, AvatarRenderState avatarRenderState, float f, CallbackInfo ci,
             @Share(value = "hiddenModelParts", namespace = "flashback") LocalRef<EnumSet<PlayerModelPart>> hiddenPartsRef) {
         EnumSet<PlayerModelPart> hiddenParts = null;
@@ -33,7 +33,7 @@ public class MixinAvatarRenderer {
         hiddenPartsRef.set(hiddenParts);
     }
 
-    @WrapOperation(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Avatar;isModelPartShown(Lnet/minecraft/world/entity/player/PlayerModelPart;)Z"))
+    @WrapOperation(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Avatar;isModelPartShown(Lnet/minecraft/world/entity/player/PlayerModelPart;)Z"), require = 0)
     public boolean extractRenderState_isModelPartShown(Avatar instance, PlayerModelPart playerModelPart, Operation<Boolean> original,
             @Share(value = "hiddenModelParts", namespace = "flashback") LocalRef<EnumSet<PlayerModelPart>> hiddenPartsRef) {
         var hiddenParts = hiddenPartsRef.get();

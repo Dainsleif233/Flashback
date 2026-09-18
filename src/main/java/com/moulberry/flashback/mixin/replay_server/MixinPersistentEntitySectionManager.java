@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(PersistentEntitySectionManager.class)
 public class MixinPersistentEntitySectionManager {
 
-    @Inject(method = "saveAll", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "saveAll", at = @At("HEAD"), cancellable = true, require = 0)
     public void saveAll(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             ci.cancel();

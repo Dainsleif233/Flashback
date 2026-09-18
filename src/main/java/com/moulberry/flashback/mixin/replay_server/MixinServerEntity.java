@@ -28,16 +28,17 @@ public class MixinServerEntity {
 
     /*
      * Force update interval to be 1 on a replay server, sending updates as soon as possible
+     * 26.3: constructor takes UpdateInterval instead of int updateInterval
      */
 
     @Shadow @Nullable public List<SynchedEntityData.DataValue<?>> trackedDataValues;
 
     @Shadow public Entity entity;
 
-    @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
-    private static int init_modifyUpdateInterval(int updateInterval, @Local(argsOnly = true) ServerLevel level) {
-        if (updateInterval < 20 && level != null && level.getServer() instanceof ReplayServer) {
-            return 1;
+    @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true, require = 0)
+    private static net.minecraft.world.entity.UpdateInterval init_modifyUpdateInterval(net.minecraft.world.entity.UpdateInterval updateInterval, @Local(argsOnly = true) ServerLevel level) {
+        if (level != null && level.getServer() instanceof ReplayServer) {
+            return net.minecraft.world.entity.UpdateInterval.periodic(1);
         }
         return updateInterval;
     }
@@ -45,7 +46,7 @@ public class MixinServerEntity {
     /*
      * Fix a bug where hand animations will be wrong due to incorrect packet order
      */
-    @WrapOperation(method = "addPairing", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerEntity;sendPairingData(Lnet/minecraft/server/level/ServerPlayer;Ljava/util/function/Consumer;)V"))
+    @WrapOperation(method = "addPairing", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerEntity;sendPairingData(Lnet/minecraft/server/level/ServerPlayer;Ljava/util/function/Consumer;)V"), require = 0)
     public void addPairing_sendPairingData(ServerEntity instance, ServerPlayer serverPlayer, Consumer<Packet<ClientGamePacketListener>> consumer, Operation<Void> original) {
         if (Flashback.isInReplay()) {
             List<ClientboundSetEntityDataPacket> delayed = new ArrayList<>();

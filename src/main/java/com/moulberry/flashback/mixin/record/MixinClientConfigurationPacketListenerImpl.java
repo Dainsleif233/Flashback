@@ -17,7 +17,7 @@ public abstract class MixinClientConfigurationPacketListenerImpl extends ClientC
         super(minecraft, connection, commonListenerCookie);
     }
 
-    @Inject(method = "handleConfigurationFinished", at = @At("RETURN"))
+    @Inject(method = "handleConfigurationFinished", at = @At("RETURN"), require = 0)
     public void handleConfigurationFinished(ClientboundFinishConfigurationPacket clientboundFinishConfigurationPacket, CallbackInfo ci) {
         if (Flashback.RECORDER != null) {
             Flashback.RECORDER.setRegistryAccess(((ClientPacketListener)this.connection.getPacketListener()).registryAccess());

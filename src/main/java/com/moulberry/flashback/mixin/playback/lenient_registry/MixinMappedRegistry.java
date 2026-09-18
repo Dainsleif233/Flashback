@@ -27,7 +27,7 @@ public abstract class MixinMappedRegistry {
     @Final
     private Map<TagKey, HolderSet.Named> frozenTags;
 
-    @Inject(method = "freeze", at = @At("HEAD"))
+    @Inject(method = "freeze", at = @At("HEAD"), require = 0)
     public void freeze(CallbackInfoReturnable<Registry> cir) {
         if (!this.frozen && Flashback.isInReplay()) {
             for (Map.Entry<TagKey, HolderSet.Named> entry : this.frozenTags.entrySet()) {

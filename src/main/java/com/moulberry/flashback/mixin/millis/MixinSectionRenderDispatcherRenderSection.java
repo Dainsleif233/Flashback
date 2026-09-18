@@ -9,12 +9,13 @@ import org.spongepowered.asm.mixin.Mixin;
 @Mixin(SectionRenderDispatcher.RenderSection.class)
 public class MixinSectionRenderDispatcherRenderSection {
 
+    // 26.3: getVisibility(long, long) — signature changed from single long
     @WrapMethod(method = "getVisibility")
-    public float getVisibility(long now, Operation<Float> original) {
+    public float getVisibility(long now, long unused, Operation<Float> original) {
         if (Flashback.isInReplay()) {
             return 1.0f;
         }
-        return original.call(now);
+        return original.call(now, unused);
     }
 
 }

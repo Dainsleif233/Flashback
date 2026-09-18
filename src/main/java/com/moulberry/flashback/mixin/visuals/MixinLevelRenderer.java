@@ -1,7 +1,7 @@
 package com.moulberry.flashback.mixin.visuals;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
 import com.mojang.blaze3d.framegraph.FramePass;
 import com.mojang.blaze3d.pipeline.RenderTarget;
@@ -32,10 +32,10 @@ public class MixinLevelRenderer {
 
     @Shadow @Final private LevelTargetBundle targets;
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;addAlwaysOnTopPass(Lcom/mojang/blaze3d/framegraph/FrameGraphBuilder;Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.BEFORE))
-    public void renderLevelPost(GraphicsResourceAllocator resourceAllocator, DeltaTracker deltaTracker, boolean renderOutline,
-        CameraRenderState cameraState, Matrix4fc modelViewMatrix, GpuBufferSlice terrainFog, Vector4f fogColor,
-        boolean shouldRenderSky, CallbackInfo ci, @Local FrameGraphBuilder frameGraphBuilder
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;addAlwaysOnTopPass(Lcom/mojang/blaze3d/framegraph/FrameGraphBuilder;Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;Lcom/mojang/renderpearl/api/buffers/GpuBufferSlice;)V", shift = At.Shift.BEFORE), require = 0)
+    public void renderLevelPost(GraphicsResourceAllocator resourceAllocator, boolean bl, CameraRenderState cameraState,
+        GpuBufferSlice terrainFog, Vector4f fogColor, boolean bl2, boolean bl3,
+        CallbackInfo ci, @Local FrameGraphBuilder frameGraphBuilder
     ) {
         if (!Flashback.isInReplay()) {
             return;
@@ -43,18 +43,23 @@ public class MixinLevelRenderer {
 
         FramePass framePass = frameGraphBuilder.addPass("flashback_mod_pass");
         this.targets.main = framePass.readsAndWrites(this.targets.main);
-        if (this.targets.translucent != null) {
-            this.targets.translucent = framePass.readsAndWrites(this.targets.translucent);
+        // 26.3: LevelTargetBundle no longer exposes translucent/itemEntity/particles fields
+        if (!this.targets.transmittance.isEmpty()) {
+            for (int i = 0; i < this.targets.transmittance.size(); i++) {
+                this.targets.transmittance.set(i, framePass.readsAndWrites(this.targets.transmittance.get(i)));
+            }
         }
-        if (this.targets.itemEntity != null) {
-            this.targets.itemEntity = framePass.readsAndWrites(this.targets.itemEntity);
+        if (this.targets.accumulate != null) {
+            this.targets.accumulate = framePass.readsAndWrites(this.targets.accumulate);
         }
-        if (this.targets.particles != null) {
-            this.targets.particles = framePass.readsAndWrites(this.targets.particles);
+        if (this.targets.entityOutline != null) {
+            this.targets.entityOutline = framePass.readsAndWrites(this.targets.entityOutline);
         }
         framePass.executes(() -> {
             PoseStack poseStack = new PoseStack();
-            poseStack.mulPose(modelViewMatrix);
+            if (cameraState != null && cameraState.viewRotationMatrix != null) {
+                poseStack.mulPose(cameraState.viewRotationMatrix);
+            }
 
             // Set model view stack to identity
             var modelViewStack = RenderSystem.getModelViewStack();

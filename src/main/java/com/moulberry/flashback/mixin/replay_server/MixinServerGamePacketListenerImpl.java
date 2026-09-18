@@ -51,13 +51,13 @@ public abstract class MixinServerGamePacketListenerImpl extends ServerCommonPack
         this.pendingTasks = tasks;
     }
 
-    @Inject(method = "switchToConfig", at = @At("HEAD"))
+    @Inject(method = "switchToConfig", at = @At("HEAD"), require = 0)
     public void switchToConfig(CallbackInfo ci) {
         this.pendingConfigurationPackets = null;
         this.pendingTasks = null;
     }
 
-    @Inject(method = "handleConfigurationAcknowledged", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleConfigurationAcknowledged", at = @At("HEAD"), cancellable = true, require = 0)
     public void handleConfigurationAcknowledged(ServerboundConfigurationAcknowledgedPacket serverboundConfigurationAcknowledgedPacket, CallbackInfo ci) {
         if (this.pendingTasks != null) {
             var configurationHandler = new ServerConfigurationPacketListenerImpl(this.server, this.connection,

@@ -34,7 +34,7 @@ public abstract class MixinServerLoginPacketListenerImpl {
     @Nullable
     String requestedUsername;
 
-    @Inject(method = "handleHello", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleHello", at = @At("HEAD"), cancellable = true, require = 0)
     public void handleHello(ServerboundHelloPacket serverboundHelloPacket, CallbackInfo ci) {
         if (this.server instanceof ReplayServer) {
             this.requestedUsername = ReplayServer.REPLAY_VIEWER_NAME;

@@ -16,7 +16,7 @@ public abstract class MixinAttributeInstance {
     @Shadow
     public abstract boolean removeModifier(Identifier resourceLocation);
 
-    @Inject(method = "addModifier", at = @At(value = "HEAD"))
+    @Inject(method = "addModifier", at = @At("HEAD"), require = 0)
     public void addModifier(AttributeModifier attributeModifier, CallbackInfo ci) {
         // Some mods (e.g. HorseBuff) may end up adding a duplicate modifier while inside a replay
         // Remove the modifier first in order to ensure no exceptions are thrown

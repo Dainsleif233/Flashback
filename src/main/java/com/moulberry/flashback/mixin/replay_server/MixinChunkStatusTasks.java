@@ -17,14 +17,14 @@ import java.util.concurrent.CompletableFuture;
 @Mixin(ChunkStatusTasks.class)
 public class MixinChunkStatusTasks {
 
-    @Inject(method = "initializeLight", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "initializeLight", at = @At("HEAD"), cancellable = true, require = 0)
     private static void initializeLight(WorldGenContext worldGenContext, ChunkStep chunkStep, StaticCache2D<GenerationChunkHolder> staticCache2D, ChunkAccess chunkAccess, CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir) {
         if (Flashback.isInReplay()) {
             cir.setReturnValue(CompletableFuture.completedFuture(chunkAccess));
         }
     }
 
-    @Inject(method = "light", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "light", at = @At("HEAD"), cancellable = true, require = 0)
     private static void light(WorldGenContext worldGenContext, ChunkStep chunkStep, StaticCache2D<GenerationChunkHolder> staticCache2D, ChunkAccess chunkAccess, CallbackInfoReturnable<CompletableFuture<ChunkAccess>> cir) {
         if (Flashback.isInReplay()) {
             cir.setReturnValue(CompletableFuture.completedFuture(chunkAccess));

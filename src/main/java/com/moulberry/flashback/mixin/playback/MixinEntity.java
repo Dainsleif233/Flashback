@@ -42,7 +42,7 @@ public abstract class MixinEntity {
         return original.call(instance);
     }
 
-    @Inject(method = "isInvisibleTo", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "isInvisibleTo", at = @At("HEAD"), cancellable = true, require = 0)
     public void isInvisibleTo(Player player, CallbackInfoReturnable<Boolean> cir) {
         ReplayServer replayServer = Flashback.getReplayServer();
         if (replayServer != null && player == Minecraft.getInstance().player) {

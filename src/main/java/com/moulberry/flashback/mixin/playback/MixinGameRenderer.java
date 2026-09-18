@@ -11,7 +11,7 @@ import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.ItemInHandRenderer;
+import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.GameType;
@@ -35,14 +35,15 @@ public abstract class MixinGameRenderer {
     @Final
     Minecraft minecraft;
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/CommandEncoder;clearDepthTexture(Lcom/mojang/blaze3d/textures/GpuTexture;D)V", remap = false, ordinal = 0), cancellable = true)
-    public void render_noGui(DeltaTracker deltaTracker, boolean bl, CallbackInfo ci) {
-        if (Flashback.isExporting() && Flashback.EXPORT_JOB.getSettings().noGui()) {
+    // 26.3: GameRenderer.render() is no-arg; cancel at HEAD when exporting without GUI
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true, require = 0)
+    public void render_noGui(CallbackInfo ci) {
+        if (Flashback.isExporting() && Flashback.EXPORT_JOB != null && Flashback.EXPORT_JOB.getSettings().noGui()) {
             ci.cancel();
         }
     }
 
-    @WrapOperation(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;getPlayerMode()Lnet/minecraft/world/level/GameType;"))
+    @WrapOperation(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;getPlayerMode()Lnet/minecraft/world/level/GameType;"), require = 0)
     public GameType getPlayerMode(MultiPlayerGameMode instance, Operation<GameType> original) {
         AbstractClientPlayer spectatingPlayer = Flashback.getSpectatingPlayer();
         if (spectatingPlayer != null) {
@@ -51,8 +52,8 @@ public abstract class MixinGameRenderer {
         return original.call(instance);
     }
 
-    @WrapOperation(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;submitHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V"))
-    public void renderItemInHand_submitHandsWithItems(ItemInHandRenderer instance, final float frameInterp, final PoseStack poseStack,
+    @WrapOperation(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/FirstPersonHandsAndItemsRenderer;submitHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V"), require = 0)
+    public void renderItemInHand_submitHandsWithItems(FirstPersonHandsAndItemsRenderer instance, final float frameInterp, final PoseStack poseStack,
         final SubmitNodeCollector submitNodeCollector, final LocalPlayer player, final int lightCoords, Operation<Void> original
     ) {
         AbstractClientPlayer spectatingPlayer = Flashback.getSpectatingPlayer();
@@ -65,14 +66,14 @@ public abstract class MixinGameRenderer {
         }
     }
 
-    @Inject(method = "tryTakeScreenshotIfNeeded", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tryTakeScreenshotIfNeeded", at = @At("HEAD"), cancellable = true, require = 0)
     public void tryTakeScreenshotIfNeeded(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "shouldRenderBlockOutline", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "shouldRenderBlockOutline", at = @At("HEAD"), cancellable = true, require = 0)
     public void shouldRenderBlockOutline(CallbackInfoReturnable<Boolean> cir) {
         if (Flashback.isInReplay()) {
             var cameraEntity = Minecraft.getInstance().getCameraEntity();

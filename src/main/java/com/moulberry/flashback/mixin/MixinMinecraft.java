@@ -5,10 +5,10 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.GpuSurface;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.device.GpuSurface;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import com.moulberry.flashback.Flashback;
 import com.moulberry.flashback.FramebufferUtils;
 import com.moulberry.flashback.FreezeSlowdownFormula;
@@ -115,7 +115,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     @Unique
     private RenderTarget compositeRenderTarget = null;
 
-    @WrapOperation(method = "renderFrame", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/GpuSurface;blitFromTexture(Lcom/mojang/blaze3d/systems/CommandEncoder;Lcom/mojang/blaze3d/textures/GpuTextureView;)V"))
+    @WrapOperation(method = "renderFrame", at = @At(value = "INVOKE", target = "Lcom/mojang/renderpearl/api/device/GpuSurface;blitFromTexture(Lcom/mojang/renderpearl/api/commands/CommandEncoder;Lcom/mojang/renderpearl/api/textures/GpuTextureView;)V"))
     public void renderFrame(GpuSurface instance, CommandEncoder commandEncoder, GpuTextureView textureView, Operation<Void> original) {
         if (ReplayUI.isActive() && ReplayUI.compositeOnTop != null) {
             var window = Minecraft.getInstance().getWindow();
@@ -184,7 +184,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         original.call(instance, camera);
     }
 
-    @Inject(method = "renderFrame", at= @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render(Lnet/minecraft/client/DeltaTracker;Z)V", shift = At.Shift.AFTER))
+    @Inject(method = "renderFrame", at= @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.AFTER), require = 0)
     public void afterMainRender(boolean bl, CallbackInfo ci) {
         if (!RenderSystem.isOnRenderThread()) return;
         ReplayUI.drawOverlay();
@@ -194,7 +194,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     @Unique
     private boolean inReplayLast = false;
 
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "tick", at = @At("RETURN"), require = 0)
     public void tick(CallbackInfo ci) {
         if (Flashback.RECORDER != null) {
             Flashback.RECORDER.endTickWithContext(false);
@@ -203,6 +203,14 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         EditorStateManager.saveIfNeeded();
 
         ReplayServer replayServer = Flashback.getReplayServer();
+        Flashback.updateIsInReplay();
+
+        // 26.3: force-clear stale loading overlay once replay client has a level/player
+        if (replayServer != null && this.level != null && this.player != null) {
+            if (this.gui != null && this.gui.overlay() != null) {
+                this.gui.setOverlay(null);
+            }
+        }
 
         boolean inReplay = replayServer != null;
         if (inReplay != inReplayLast) {
@@ -313,7 +321,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     @Unique
     private final DeltaTracker.Timer localPlayerTimer = new DeltaTracker.Timer(20.0f, 0, FloatUnaryOperator.identity());
 
-    @Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runAllTasks()V", shift = At.Shift.AFTER))
+    @Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runAllTasks()V", shift = At.Shift.AFTER), require = 0)
     public void runTick_runAllTasks(boolean runTick, CallbackInfo ci) {
         if (ExportJobQueue.drainingQueue) {
             if (ExportJobQueue.queuedJobs.isEmpty()) {
@@ -369,7 +377,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
 
     @Inject(method = "runTick", at = @At(value = "INVOKE",
         target = "Lcom/mojang/blaze3d/platform/Window;setErrorSection(Ljava/lang/String;)V",
-        ordinal = 1), cancellable = true)
+        ordinal = 1), cancellable = true, require = 0)
     public void runTick_setErrorSection(boolean bl, CallbackInfo ci) {
         ReplayServer replayServer = Flashback.getReplayServer();
         if (replayServer == null) {
@@ -399,14 +407,17 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
 
             try {
                 EditorState editorState = EditorStateManager.get(replayServer.getMetadata().replayIdentifier);
-                editorState.applyKeyframes(new MinecraftKeyframeHandler((Minecraft) (Object) this), (float) replayServer.getPartialReplayTick());
+                if (editorState != null) {
+                    editorState.applyKeyframes(new MinecraftKeyframeHandler((Minecraft) (Object) this), (float) replayServer.getPartialReplayTick());
+                }
             } finally {
                 if (!paused) {
                     FlashbackAudioManager.finishHandling();
                 }
             }
         }
-        if (!replayServer.doClientRendering()) {
+        // Only skip client rendering while a snapshot is actively being processed
+        if (replayServer.isProcessingSnapshot || replayServer.fastForwarding) {
             ci.cancel();
         }
     }

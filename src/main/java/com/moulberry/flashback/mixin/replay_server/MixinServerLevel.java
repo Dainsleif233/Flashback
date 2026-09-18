@@ -63,7 +63,7 @@ public abstract class MixinServerLevel implements ServerLevelExt {
         this.canSpawnEntities = canSpawnEntities;
     }
 
-    @Inject(method = "addFreshEntity", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "addFreshEntity", at = @At("HEAD"), cancellable = true, require = 0)
     public void addFreshEntity(Entity entity, CallbackInfoReturnable<Boolean> cir) {
         if (!(entity instanceof Player) && !this.canSpawnEntities) {
             cir.setReturnValue(false);
@@ -89,7 +89,7 @@ public abstract class MixinServerLevel implements ServerLevelExt {
         }
     }
 
-    @Inject(method = "waitForEntities", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "waitForEntities", at = @At("HEAD"), cancellable = true, require = 0)
     public void waitForChunkAndEntities(ChunkPos chunkPos, int i, CallbackInfo ci) {
         if (this.getServer() instanceof ReplayServer) {
             ci.cancel();

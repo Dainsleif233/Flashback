@@ -84,7 +84,7 @@ public abstract class MixinPauseScreen extends Screen {
         original.call(instance);
     }
 
-    @Inject(method = "createPauseMenu", at = @At(value = "RETURN"))
+    @Inject(method = "createPauseMenu", at = @At("RETURN"))
     public void createPauseMenuSide(CallbackInfo ci) {
         var controls = Flashback.getConfig().recordingControls.controlsLocation;
         if (Flashback.isInReplay() || (controls != RecordingControlsLocation.RIGHT && controls != RecordingControlsLocation.LEFT)) {

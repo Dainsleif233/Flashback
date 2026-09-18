@@ -26,7 +26,7 @@ public abstract class MixinThreadedLevelLightEngine extends LevelLightEngine imp
         this.addTask(x, z, ThreadedLevelLightEngine.TaskType.POST_UPDATE, runnable);
     }
 
-    @WrapOperation(method = "runUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;runLightUpdates()I"), require = 0)
+    @WrapOperation(method = "runUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/lighting/LevelLightEngine;runLightUpdatesI"), require = 0)
     public int runUpdate_runLightUpdates(ThreadedLevelLightEngine instance, Operation<Integer> original) {
         if (Flashback.isInReplay()) {
             try {

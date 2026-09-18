@@ -126,7 +126,7 @@ public abstract class MixinHud {
         return original.call(instance);
     }
 
-    @WrapOperation(method = "extractHotbarAndDecorations", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;canHurtPlayer()Z"), require = 0)
+    @WrapOperation(method = "extractHotbarAndDecorations", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;canHurtPlayerZ"), require = 0)
     public boolean extractHotbarAndDecorations_canHurtPlayer(MultiPlayerGameMode instance, Operation<Boolean> original) {
         if (this.cameraGameType != null) {
             return this.cameraGameType.isSurvival();
@@ -134,7 +134,7 @@ public abstract class MixinHud {
         return original.call(instance);
     }
 
-    @WrapOperation(method = "extractHotbarAndDecorations", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;hasExperience()Z"), require = 0)
+    @WrapOperation(method = "extractHotbarAndDecorations", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;hasExperienceZ"), require = 0)
     public boolean extractHotbarAndDecorations_hasExperience(MultiPlayerGameMode instance, Operation<Boolean> original) {
         if (this.cameraGameType != null) {
             return this.cameraGameType.isSurvival();
@@ -164,7 +164,7 @@ public abstract class MixinHud {
         return original.call(instance, partialTick);
     }
 
-    @WrapOperation(method = "extractCrosshair", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getCurrentItemAttackStrengthDelay()F"), require = 0)
+    @WrapOperation(method = "extractCrosshair", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getCurrentItemAttackStrengthDelayF"), require = 0)
     public float extractCrosshair_getCurrentItemAttackStrengthDelay(LocalPlayer instance, Operation<Float> original) {
         if (Flashback.isInReplay()) {
             Player player = this.getCameraPlayer();

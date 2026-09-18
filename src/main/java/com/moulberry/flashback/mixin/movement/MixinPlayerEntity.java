@@ -43,7 +43,7 @@ public abstract class MixinPlayerEntity extends LivingEntity {
         }
     }
 
-    @Inject(method="travel", at=@At(value = "HEAD"), cancellable = true)
+    @Inject(method="travel", at=@At("HEAD"), cancellable = true)
     public void travel(Vec3 movementInput, CallbackInfo ci) {
         if ((Object)this instanceof LocalPlayer player && Flashback.isInReplay()) {
             FlashbackConfigV1 config = Flashback.getConfig();

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ChunkGenerators.class)
 public class MixinChunkGenerators {
 
-    @Inject(method = "bootstrap", at = @At("HEAD"))
+    @Inject(method = "bootstrap", at = @At("HEAD"), require = 0)
     private static void bootstrap(Registry<MapCodec<? extends ChunkGenerator>> registry, CallbackInfoReturnable<MapCodec<? extends ChunkGenerator>> cir) {
         Registry.register(registry, "flashback/empty", EmptyLevelSource.CODEC);
     }

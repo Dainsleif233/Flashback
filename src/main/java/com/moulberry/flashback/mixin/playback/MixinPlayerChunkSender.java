@@ -33,7 +33,7 @@ public class MixinPlayerChunkSender {
     @Final
     public LongSet pendingChunks;
 
-    @Inject(method = "sendNextChunks", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "sendNextChunks", at = @At("HEAD"), cancellable = true, require = 0)
     public void sendNextChunks(ServerPlayer serverPlayer, CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             this.unacknowledgedBatches = 0;
@@ -47,7 +47,7 @@ public class MixinPlayerChunkSender {
         }
     }
 
-    @Inject(method = "markChunkPendingToSend", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "markChunkPendingToSend", at = @At("HEAD"), cancellable = true, require = 0)
     public void markChunkPendingToSend(LevelChunk levelChunk, CallbackInfo ci) {
         ReplayServer replayServer = Flashback.getReplayServer();
         if (replayServer != null) {

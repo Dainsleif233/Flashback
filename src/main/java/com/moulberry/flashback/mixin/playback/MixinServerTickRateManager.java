@@ -39,7 +39,7 @@ public abstract class MixinServerTickRateManager extends TickRateManager impleme
         }
     }
 
-    @Inject(method = "updateStateToClients", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "updateStateToClients", at = @At("HEAD"), cancellable = true, require = 0)
     public void updateStateToClients(CallbackInfo ci) {
         if (this.suppressClientUpdates) {
             ci.cancel();

@@ -28,7 +28,7 @@ public class MixinChunkHolder {
     @Final
     private BitSet blockChangedLightSectionFilter;
 
-    @Inject(method = "broadcastChanges", at = @At("HEAD"))
+    @Inject(method = "broadcastChanges", at = @At("HEAD"), require = 0)
     public void broadcastChanges(LevelChunk levelChunk, CallbackInfo ci) {
         ReplayServer replayServer = Flashback.getReplayServer();
         if (replayServer != null && levelChunk instanceof LevelChunkExt levelChunkExt) {

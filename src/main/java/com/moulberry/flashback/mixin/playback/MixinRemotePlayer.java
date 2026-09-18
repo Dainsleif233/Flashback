@@ -35,13 +35,13 @@ public class MixinRemotePlayer extends AbstractClientPlayer implements RemotePla
         super(clientLevel, gameProfile);
     }
 
-    @Inject(method = "aiStep", at = @At("RETURN"))
+    @Inject(method = "aiStep", at = @At("RETURN"), require = 0)
     public void aiStep(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
-            if (!this.wasSwinging && this.swinging) {
+            if (!this.wasSwinging && this.isSwinging()) {
                 this.resetAttackStrengthTicker();
             }
-            this.wasSwinging = this.swinging;
+            this.wasSwinging = this.isSwinging();
 
             this.xBobO = xBob;
             this.xBob += Mth.wrapDegrees(this.getXRot() - this.xBob) * 0.5f;

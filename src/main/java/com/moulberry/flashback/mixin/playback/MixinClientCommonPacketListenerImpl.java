@@ -34,7 +34,7 @@ public abstract class MixinClientCommonPacketListenerImpl {
     /**
      * Removes the resource pack prompt screen in replays
      */
-    @Inject(method = "handleResourcePackPush", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "handleResourcePackPush", at = @At("HEAD"), cancellable = true, require = 0)
     public void handleResourcePackPush(ClientboundResourcePackPushPacket clientboundResourcePackPushPacket, CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             PacketUtils.ensureRunningOnSameThread(clientboundResourcePackPushPacket, (ClientCommonPacketListenerImpl)(Object)this, this.minecraft.packetProcessor());

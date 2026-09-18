@@ -26,5 +26,17 @@ public class MixinLoadingOverlay {
         }
     }
 
+    // 26.3: force-dismiss loading overlay once a ReplayServer exists so UI can activate
+    @Inject(method = "tick", at = @At("HEAD"), require = 0)
+    public void tick(CallbackInfo ci) {
+        if (Flashback.getReplayServer() != null || Flashback.isInReplay()) {
+            if (this.minecraft.getSingleplayerServer() instanceof com.moulberry.flashback.playback.ReplayServer) {
+                if (this.minecraft.level != null && this.minecraft.player != null) {
+                    this.minecraft.gui.setOverlay(null);
+                }
+            }
+        }
+    }
+
 
 }

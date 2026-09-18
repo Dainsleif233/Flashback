@@ -17,7 +17,7 @@ public class MixinServerChunkCache {
     @Final
     ServerLevel level;
 
-    @Inject(method = "save", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "save", at = @At("HEAD"), cancellable = true, require = 0)
     public void save(boolean bl, CallbackInfo ci) {
         if (this.level.getServer() instanceof ReplayServer) {
             ci.cancel();

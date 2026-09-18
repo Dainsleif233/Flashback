@@ -15,8 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = EntityRenderDispatcher.class, priority = 990)
 public abstract class MixinEntityRenderDispatcher {
 
-    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
-    public void shouldRender(Entity entity, Frustum frustum, double d, double e, double f, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true, require = 0)
+    public void shouldRender(Entity entity, Frustum frustum, double d, double e, double f, float partialTick, CallbackInfoReturnable<Boolean> cir) {
         EditorState editorState = EditorStateManager.getCurrent();
         if (editorState != null) {
             if (!editorState.filteredEntities.isEmpty()) {
@@ -32,7 +32,7 @@ public abstract class MixinEntityRenderDispatcher {
         }
     }
 
-    @Inject(method = "extractEntity", at = @At("RETURN"))
+    @Inject(method = "extractEntity", at = @At("RETURN"), require = 0)
     public void extractEntity(Entity entity, float partialTick, CallbackInfoReturnable<EntityRenderState> cir) {
         EntityRenderState renderState = cir.getReturnValue();
 

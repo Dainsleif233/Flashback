@@ -30,7 +30,7 @@ public class MixinConnection implements ConnectionExt {
         this.filterUnnecessaryPackets = true;
     }
 
-    @Inject(method = "genericsFtw", at = @At("HEAD"))
+    @Inject(method = "genericsFtw", at = @At("HEAD"), require = 0)
     private static void genericsFtw(Packet<?> packet, PacketListener packetListener, CallbackInfo ci) {
         Recorder recorder = Flashback.RECORDER;
         if (recorder != null) {

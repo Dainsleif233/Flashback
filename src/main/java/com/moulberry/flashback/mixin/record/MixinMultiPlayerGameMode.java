@@ -20,7 +20,8 @@ import java.util.concurrent.ThreadLocalRandom;
 @Mixin(MultiPlayerGameMode.class)
 public class MixinMultiPlayerGameMode {
 
-    @WrapOperation(method = "continueDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/sounds/SoundManager;play(Lnet/minecraft/client/resources/sounds/SoundInstance;)Lnet/minecraft/client/sounds/SoundEngine$PlayResult;"))
+    // 26.3: continueDestroyBlock no longer calls SoundManager.play directly
+    @WrapOperation(method = "continueDestroyBlock", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/sounds/SoundManager;play(Lnet/minecraft/client/resources/sounds/SoundInstance;)Lnet/minecraft/client/sounds/SoundEngine$PlayResult;"), require = 0)
     public SoundEngine.PlayResult playBreakingSound(SoundManager instance, SoundInstance soundInstance, Operation<SoundEngine.PlayResult> original) {
         var result = original.call(instance, soundInstance);
 

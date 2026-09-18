@@ -83,7 +83,7 @@ public abstract class MixinCamera {
     @Shadow
     private boolean isPanoramicMode;
 
-    @Inject(method = "update", at = @At(value = "RETURN"))
+    @Inject(method = "update", at = @At("RETURN"), require = 0)
     public void afterSetPosition(DeltaTracker deltaTracker, CallbackInfo ci)  {
         if (this.entity == null) {
             return;
@@ -157,7 +157,7 @@ public abstract class MixinCamera {
         original.call(instance, zNear, zFar, fov, width, height);
     }
 
-    @Inject(method = "createProjectionMatrixForCulling", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "createProjectionMatrixForCulling", at = @At("HEAD"), cancellable = true, require = 0)
     public void createProjectionMatrixForCulling(CallbackInfoReturnable<Matrix4f> cir) {
         ExportJob exportJob = Flashback.EXPORT_JOB;
         if (exportJob != null && exportJob.getSettings().projection() == ExportProjection.ORTHOGRAPHIC) {

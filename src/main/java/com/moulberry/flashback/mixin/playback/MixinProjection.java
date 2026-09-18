@@ -44,17 +44,17 @@ public class MixinProjection implements ProjectionExt {
         }
     }
 
-    @Inject(method = "setupPerspective", at = @At("HEAD"))
+    @Inject(method = "setupPerspective", at = @At("HEAD"), require = 0)
     public void setupPerspective(CallbackInfo ci) {
         this.flashback$setCenteredOrtho(false);
     }
 
-    @Inject(method = "setupOrtho", at = @At("HEAD"))
+    @Inject(method = "setupOrtho", at = @At("HEAD"), require = 0)
     public void setupOrtho(CallbackInfo ci) {
         this.flashback$setCenteredOrtho(false);
     }
 
-    @Inject(method = "getMatrix", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getMatrix", at = @At("HEAD"), cancellable = true, require = 0)
     public void getMatrix(Matrix4f dest, CallbackInfoReturnable<Matrix4f> cir) {
         if (this.isMatrixDirty && this.centeredOrtho) {
             this.isMatrixDirty = false;

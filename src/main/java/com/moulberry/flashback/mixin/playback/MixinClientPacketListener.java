@@ -22,14 +22,14 @@ public class MixinClientPacketListener {
     @Unique
     private Screen screenBeforeHandleCustomPayload = null;
 
-    @Inject(method = "handleCustomPayload", at = @At("HEAD"))
+    @Inject(method = "handleCustomPayload", at = @At("HEAD"), require = 0)
     public void handleCustomPayloadHead(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             this.screenBeforeHandleCustomPayload = Minecraft.getInstance().gui.screen();
         }
     }
 
-    @Inject(method = "handleCustomPayload", at = @At("RETURN"))
+    @Inject(method = "handleCustomPayload", at = @At("RETURN"), require = 0)
     public void handleCustomPayloadReturn(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             Minecraft.getInstance().gui.setScreen(this.screenBeforeHandleCustomPayload);

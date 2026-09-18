@@ -27,7 +27,7 @@ public abstract class MixinTickRateManager {
     @Unique
     private final boolean isServerTickRateManager = ((Object)this instanceof ServerTickRateManager);
 
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "tick", at = @At("RETURN"), require = 0)
     public void tick(CallbackInfo ci) {
         if (Flashback.isInReplay()) {
             if (this.isServerTickRateManager) {
@@ -36,7 +36,7 @@ public abstract class MixinTickRateManager {
         }
     }
 
-    @Inject(method = "isEntityFrozen", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "isEntityFrozen", at = @At("HEAD"), cancellable = true, require = 0)
     public void isEntityFrozen(Entity entity, CallbackInfoReturnable<Boolean> cir) {
         if (Flashback.isInReplay()) {
             if (this.isServerTickRateManager) {

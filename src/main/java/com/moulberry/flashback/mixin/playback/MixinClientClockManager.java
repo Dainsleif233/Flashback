@@ -23,24 +23,25 @@ public class MixinClientClockManager implements ClientClockManagerExt {
 
     @Shadow
     @Final
-    private Map<Holder<WorldClock>, ClientClockManager.ClockInstance> clocks;
+    private Map<Holder<WorldClock>, ClientClockManager.ClientClockInstance> clocks;
 
     public Map<Holder<WorldClock>, ClockNetworkState> flashback$encodeClockUpdates() {
         Map<Holder<WorldClock>, ClockNetworkState> data = new HashMap<>();
 
-        for (Map.Entry<Holder<WorldClock>, ClientClockManager.ClockInstance> entry : this.clocks.entrySet()) {
+        for (Map.Entry<Holder<WorldClock>, ClientClockManager.ClientClockInstance> entry : this.clocks.entrySet()) {
             var clock = entry.getValue();
             data.put(entry.getKey(), new ClockNetworkState(
-                clock.totalTicks,
-                clock.partialTick,
-                clock.rate
+                clock.totalTicks(),
+                clock.partialTick(),
+                clock.rate()
             ));
         }
 
         return data;
     }
 
-    @Inject(method = "getTotalTicks", at = @At("HEAD"), cancellable = true)
+    // 26.3: getTotalTicks may be renamed/moved; optional inject so world join does not crash
+    @Inject(method = "getTotalTicks", at = @At("HEAD"), cancellable = true, require = 0)
     public void getTotalTicks(Holder<WorldClock> definition, CallbackInfoReturnable<Long> cir) {
         if (definition.is(WorldClocks.OVERWORLD)) {
             EditorState editorState = EditorStateManager.getCurrent();

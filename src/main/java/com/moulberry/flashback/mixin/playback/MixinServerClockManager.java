@@ -23,14 +23,14 @@ public class MixinServerClockManager {
     @Final
     private Map clocks;
 
-    @Inject(method = "init", at = @At("HEAD"))
+    @Inject(method = "init", at = @At("HEAD"), require = 0)
     public void init(MinecraftServer server, CallbackInfo ci) {
         if (server instanceof ReplayServer) {
             this.clocks.clear();
         }
     }
 
-    @WrapWithCondition(method = "modifyClock", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/players/PlayerList;broadcastAll(Lnet/minecraft/network/protocol/Packet;)V"))
+    @WrapWithCondition(method = "modifyClock", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/players/PlayerList;broadcastAll(Lnet/minecraft/network/protocol/Packet;)V"), require = 0)
     public boolean modifyClock_broadcast(PlayerList instance, Packet<?> packet) {
         return !Flashback.isInReplay();
     }
