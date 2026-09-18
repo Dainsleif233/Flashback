@@ -27,18 +27,35 @@ public class FramebufferUtils {
     public static void clear(RenderTarget renderTarget, Vector4f clearColour) {
         GpuTexture colourTexture = renderTarget.getColorTexture();
         GpuTexture depthTexture = renderTarget.getDepthTexture();
-        if (colourTexture != null && !colourTexture.isClosed() && depthTexture != null && !depthTexture.isClosed()) {
-            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(colourTexture, clearColour, depthTexture, 0.0f);
-        } else if (colourTexture != null && !colourTexture.isClosed()) {
-            RenderSystem.getDevice().createCommandEncoder().clearColorTexture(colourTexture, clearColour);
-        } else if (depthTexture != null && !depthTexture.isClosed()) {
-            RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(depthTexture, 0.0f);
+        var encoder = RenderSystem.getDevice().createCommandEncoder();
+
+        boolean colourOk = colourTexture != null && !colourTexture.isClosed();
+        // 26.3: only clear depth when the texture is actually a depth format
+        boolean depthOk = false;
+        if (depthTexture != null && !depthTexture.isClosed()) {
+            try {
+                GpuFormat format = depthTexture.getFormat();
+                depthOk = format != null && format.hasDepthAspect();
+            } catch (Throwable t) {
+                depthOk = false;
+            }
+        }
+
+        if (colourOk && depthOk) {
+            encoder.clearColorAndDepthTextures(colourTexture, clearColour, depthTexture, 0.0f);
+        } else if (colourOk) {
+            encoder.clearColorTexture(colourTexture, clearColour);
+        } else if (depthOk) {
+            encoder.clearDepthTexture(depthTexture, 0.0f);
         }
     }
 
     public static RenderTarget resizeOrCreateFramebuffer(RenderTarget renderTarget, int width, int height, boolean useDepth) {
         if (renderTarget == null) {
-            renderTarget = new TextureTarget(null, width, height, GpuFormat.RGBA8_UNORM, useDepth ? GpuFormat.D32_FLOAT : GpuFormat.RGBA8_UNORM);
+            // Always use a real depth format for the depth slot; clearing a color format
+            // as depth crashes RenderPearl (Trying to clear a non-depth texture as depth).
+            GpuFormat depthFormat = useDepth ? GpuFormat.D32_FLOAT : GpuFormat.D24_UNORM_S8_UINT;
+            renderTarget = new TextureTarget(null, width, height, GpuFormat.RGBA8_UNORM, depthFormat);
         } else if (renderTarget.width != width || renderTarget.height != height) {
             renderTarget.resize(width, height);
         }
