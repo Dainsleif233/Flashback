@@ -66,8 +66,9 @@ public class ReplayUI {
     private static boolean isFrameHovered = false;
     public static int frameX = 0;
     public static int frameY = 0;
-    public static int frameWidth = 1;
-    public static int frameHeight = 1;
+    /** ImGui main-dock content size; keep > 8 so composite path doesn't skip the game view. */
+    public static int frameWidth = 8;
+    public static int frameHeight = 8;
     public static int viewportSizeX = 1;
     public static int viewportSizeY = 1;
     private static boolean activeLastFrame = false;
@@ -491,13 +492,10 @@ public class ReplayUI {
     }
 
     public static boolean shouldModifyViewport() {
-        // Letterbox game view for editor panels when UI is active.
-        // Scale factors use pre-override window metrics so this should stay stable.
-        if (!isActive()) {
-            return false;
-        }
-        EditorState editorState = EditorStateManager.getCurrent();
-        return editorState != null && editorState.replayVisuals.sizing != Sizing.UNDERLAY;
+        // 26.3: do not letterbox/rescale the vanilla framebuffer while replay UI is on.
+        // Mixing Window overrides with SDL/GL backends caused title↔void flicker.
+        // Editor panels still draw as ImGui overlays on the full game view.
+        return Flashback.EXPORT_JOB != null && Flashback.EXPORT_JOB.shouldChangeFramebufferSize();
     }
 
     private static void transitionActiveState(boolean active) {

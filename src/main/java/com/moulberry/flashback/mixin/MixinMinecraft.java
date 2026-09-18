@@ -118,31 +118,46 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
 
     @WrapOperation(method = "renderFrame", at = @At(value = "INVOKE", target = "Lcom/mojang/renderpearl/api/device/GpuSurface;blitFromTexture(Lcom/mojang/renderpearl/api/commands/CommandEncoder;Lcom/mojang/renderpearl/api/textures/GpuTextureView;)V"))
     public void renderFrame(GpuSurface instance, CommandEncoder commandEncoder, GpuTextureView textureView, Operation<Void> original) {
-        if (ReplayUI.isActive() && ReplayUI.compositeOnTop != null) {
-            var window = Minecraft.getInstance().getWindow();
-            int framebufferWidth = WindowSizeTracker.getWidth(window);
-            int framebufferHeight = WindowSizeTracker.getHeight(window);
-
-            this.compositeRenderTarget = FramebufferUtils.resizeOrCreateFramebuffer(this.compositeRenderTarget, framebufferWidth, framebufferHeight, false);
-            FramebufferUtils.clear(this.compositeRenderTarget, FramebufferUtils.TRANSPARENT_CLEAR_COLOUR);
-
-            if (ReplayUI.frameWidth > 1 && ReplayUI.frameHeight > 1) {
-                float frameTop = (float) ReplayUI.frameY / ReplayUI.viewportSizeY;
-                float frameLeft = (float) ReplayUI.frameX / ReplayUI.viewportSizeX;
-                float frameWidth = (float) ReplayUI.frameWidth / ReplayUI.viewportSizeX;
-                float frameHeight = (float) ReplayUI.frameHeight / ReplayUI.viewportSizeY;
-
-                FramebufferUtils.blitTo(textureView, this.compositeRenderTarget,
-                    frameLeft, frameTop, frameLeft+frameWidth, frameTop+frameHeight);
-            }
-
-            FramebufferUtils.blitTo(ReplayUI.compositeOnTop.getColorTextureView(), this.compositeRenderTarget,
-                0, 0, 1, 1);
-
-            original.call(instance, commandEncoder, this.compositeRenderTarget.getColorTextureView());
-        } else {
+        int frameWidth = ReplayUI.frameWidth;
+        int frameHeight = ReplayUI.frameHeight;
+        // If ImGui layout isn't ready, present the raw game frame (avoids title↔void flicker)
+        if (!ReplayUI.isActive() || ReplayUI.compositeOnTop == null || frameWidth <= 8 || frameHeight <= 8) {
             original.call(instance, commandEncoder, textureView);
+            return;
         }
+
+        var window = Minecraft.getInstance().getWindow();
+        int framebufferWidth = WindowSizeTracker.getWidth(window);
+        int framebufferHeight = WindowSizeTracker.getHeight(window);
+        if (framebufferWidth <= 0 || framebufferHeight <= 0) {
+            original.call(instance, commandEncoder, textureView);
+            return;
+        }
+
+        this.compositeRenderTarget = FramebufferUtils.resizeOrCreateFramebuffer(this.compositeRenderTarget, framebufferWidth, framebufferHeight, false);
+        FramebufferUtils.clear(this.compositeRenderTarget, FramebufferUtils.TRANSPARENT_CLEAR_COLOUR);
+
+        float viewportSizeX = Math.max(1f, ReplayUI.viewportSizeX);
+        float viewportSizeY = Math.max(1f, ReplayUI.viewportSizeY);
+        float frameTop = ReplayUI.frameY / viewportSizeY;
+        float frameLeft = ReplayUI.frameX / viewportSizeX;
+        float frameW = frameWidth / viewportSizeX;
+        float frameH = frameHeight / viewportSizeY;
+        // Clamp to composite UV space
+        frameLeft = Math.max(0f, Math.min(1f, frameLeft));
+        frameTop = Math.max(0f, Math.min(1f, frameTop));
+        frameW = Math.max(0f, Math.min(1f - frameLeft, frameW));
+        frameH = Math.max(0f, Math.min(1f - frameTop, frameH));
+
+        if (frameW > 0.01f && frameH > 0.01f) {
+            FramebufferUtils.blitTo(textureView, this.compositeRenderTarget, frameLeft, frameTop, frameLeft + frameW, frameTop + frameH);
+        } else {
+            // Fallback: always keep the game visible
+            FramebufferUtils.blitTo(textureView, this.compositeRenderTarget, 0f, 0f, 1f, 1f);
+        }
+
+        FramebufferUtils.blitTo(ReplayUI.compositeOnTop.getColorTextureView(), this.compositeRenderTarget, 0f, 0f, 1f, 1f);
+        original.call(instance, commandEncoder, this.compositeRenderTarget.getColorTextureView());
     }
 
     @Inject(method = "framebufferSizeChanged", at = @At("HEAD"))
