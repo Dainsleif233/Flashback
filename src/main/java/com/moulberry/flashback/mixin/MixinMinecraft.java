@@ -223,10 +223,67 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     private static boolean replayUiErrorLogged = false;
 
     @Unique
+    private static boolean replayCompositeDisabledLogged = false;
+
+    @WrapOperation(method = "renderFrame", at = @At(value = "INVOKE", target = "Lcom/mojang/renderpearl/api/device/GpuSurface;blitFromTexture(Lcom/mojang/renderpearl/api/commands/CommandEncoder;Lcom/mojang/renderpearl/api/textures/GpuTextureView;)V"))
+    public void renderFrame(GpuSurface instance, CommandEncoder commandEncoder, GpuTextureView textureView, Operation<Void> original) {
+        int frameWidth = ReplayUI.frameWidth;
+        int frameHeight = ReplayUI.frameHeight;
+        boolean uiReady = ReplayUI.compositeOnTop != null
+            && ReplayUI.isActive()
+            && frameWidth > 16
+            && frameHeight > 16;
+
+        if (!uiReady) {
+            original.call(instance, commandEncoder, textureView);
+            return;
+        }
+
+        try {
+            var window = Minecraft.getInstance().getWindow();
+            int framebufferWidth = WindowSizeTracker.getWidth(window);
+            int framebufferHeight = WindowSizeTracker.getHeight(window);
+            if (framebufferWidth <= 0 || framebufferHeight <= 0) {
+                original.call(instance, commandEncoder, textureView);
+                return;
+            }
+
+            this.compositeRenderTarget = FramebufferUtils.resizeOrCreateFramebuffer(this.compositeRenderTarget, framebufferWidth, framebufferHeight, false);
+            FramebufferUtils.clear(this.compositeRenderTarget, FramebufferUtils.TRANSPARENT_CLEAR_COLOUR);
+
+            float viewportSizeX = Math.max(1f, ReplayUI.viewportSizeX);
+            float viewportSizeY = Math.max(1f, ReplayUI.viewportSizeY);
+            float frameLeft = ReplayUI.frameX / viewportSizeX;
+            float frameTop = ReplayUI.frameY / viewportSizeY;
+            float frameW = frameWidth / viewportSizeX;
+            float frameH = frameHeight / viewportSizeY;
+            frameLeft = Math.max(0f, Math.min(1f, frameLeft));
+            frameTop = Math.max(0f, Math.min(1f, frameTop));
+            frameW = Math.max(0.02f, Math.min(1f - frameLeft, frameW));
+            frameH = Math.max(0.02f, Math.min(1f - frameTop, frameH));
+
+            // Game view in the central dock region
+            FramebufferUtils.blitTo(textureView, this.compositeRenderTarget, frameLeft, frameTop, frameLeft + frameW, frameTop + frameH);
+            // ImGui panels on top
+            FramebufferUtils.blitTo(ReplayUI.compositeOnTop.getColorTextureView(), this.compositeRenderTarget, 0f, 0f, 1f, 1f);
+
+            original.call(instance, commandEncoder, this.compositeRenderTarget.getColorTextureView());
+        } catch (Throwable t) {
+            if (!replayUiErrorLogged) {
+                replayUiErrorLogged = true;
+                Flashback.LOGGER.error("Replay UI composite failed (logged once)", t);
+            }
+            original.call(instance, commandEncoder, textureView);
+        }
+    }
+
+    @Unique
     private void drawReplayUi() {
         if (!RenderSystem.isOnRenderThread()) return;
         if (!Flashback.isInReplay() || Flashback.EXPORT_JOB != null) return;
         try {
+            // Still tick ImGui so panels exist in backend; they may not be visible
+            // until a stable composite path is restored.
             ReplayUI.drawOverlay();
         } catch (Throwable t) {
             if (!replayUiErrorLogged) {
