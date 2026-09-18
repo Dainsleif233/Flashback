@@ -18,6 +18,28 @@ public class Utils {
      *  I love Utils.java, very cool, thank you
      */
 
+    public static void openPath(java.nio.file.Path path) {
+        try {
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().open(path.toFile());
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static void openUri(java.net.URI uri) {
+        try {
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().browse(uri);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static void openUri(String uri) {
+        try {
+            openUri(java.net.URI.create(uri));
+        } catch (Exception ignored) {}
+    }
+
     public enum ClosestElement {
         LEFT,
         RIGHT,

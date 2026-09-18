@@ -1,13 +1,13 @@
 package com.moulberry.flashback.exporting;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.renderpearl.api.buffers.GpuBuffer;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.GpuSurface;
+import com.mojang.renderpearl.api.device.GpuSurface;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.systems.SurfaceException;
+import com.mojang.renderpearl.api.device.SurfaceException;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
@@ -31,7 +31,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.font.TextRenderable;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
-import net.minecraft.client.renderer.rendertype.OutputTarget;
 import net.minecraft.client.renderer.rendertype.PreparedRenderType;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.util.LightCoordsUtil;
@@ -592,7 +591,7 @@ public class ExportJob {
         RenderSystem.executePendingTasks();
 
         FramebufferUtils.clear(renderTarget, EMPTY_CLEAR_COLOUR);
-        minecraft.gameRenderer.render(timer, true);
+        minecraft.gameRenderer.render();
     }
 
     private void updateRandoms(Random random, Random mathRandom) {
@@ -929,9 +928,19 @@ public class ExportJob {
         this.finishFrame(framebuffer, lines, forceShow, false);
     }
 
+    private static com.mojang.blaze3d.platform.SDLEventHandler sdlEventHandler;
+
+    private static com.mojang.blaze3d.platform.SDLEventHandler sdlEvents() {
+        if (sdlEventHandler == null) {
+            Minecraft minecraft = Minecraft.getInstance();
+            sdlEventHandler = new com.mojang.blaze3d.platform.SDLEventHandler(minecraft, minecraft.getWindow());
+        }
+        return sdlEventHandler;
+    }
+
     private static void finishHiddenFrame() {
         RenderSystem.executePendingTasks();
-        RenderSystem.pollEvents();
+        RenderSystem.pollEvents(sdlEvents());
         RenderSystem.getDevice().createCommandEncoder().submit();
         RenderSystem.getDynamicUniforms().reset();
         Minecraft.getInstance().levelRenderer.endFrame();
@@ -939,7 +948,7 @@ public class ExportJob {
 
     private boolean finishFrame(RenderTarget framebuffer, List<String> lines, boolean forceShow, boolean showCancel) {
         RenderSystem.executePendingTasks();
-        RenderSystem.pollEvents();
+        RenderSystem.pollEvents(sdlEvents());
 
         long currentTime = System.currentTimeMillis();
         if (currentTime - this.lastRenderMillis > 1000/60 || forceShow) {
@@ -1067,7 +1076,7 @@ public class ExportJob {
             if (GLFW.glfwGetMouseButton(window.handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) != 0) {
                 if (!this.patreonLinkClicked) {
                     this.patreonLinkClicked = true;
-                    Util.getPlatform().openUri(patreon);
+                    Utils.openUri(patreon);
                 }
             } else {
                 this.patreonLinkClicked = false;
@@ -1109,15 +1118,13 @@ public class ExportJob {
                     try (FlashbackDrawBuffer drawBuffer = new FlashbackDrawBuffer(GpuBuffer.USAGE_MAP_WRITE)) {
                         drawBuffer.upload(meshData);
                         PreparedRenderType prepared = renderType.prepare();
-                        PreparedRenderType withCustomTarget = new PreparedRenderType(prepared.pipeline(), new OutputTarget("Flashback Info", () -> displayTarget),
-                            prepared.dynamicTransforms(), prepared.scissorState(), prepared.textures());
-                        drawBuffer.drawRenderType(withCustomTarget);
+                        drawBuffer.drawRenderType(prepared, displayTarget);
                     }
                 }
             }
         }
 
-        if (!window.isMinimized()) {
+        if (!window.isIconified()) {
             var windowSurface = Minecraft.getInstance().windowSurface();
 
             try {

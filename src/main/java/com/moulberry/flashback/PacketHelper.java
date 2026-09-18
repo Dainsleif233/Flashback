@@ -45,7 +45,9 @@ public class PacketHelper {
     public static Packet<ClientGamePacketListener> createTeleportForUnknown(int id, double x, double y, double z, byte yRot, byte xRot, boolean onGround) {
         return new ClientboundEntityPositionSyncPacket(
             id,
-            new PositionMoveRotation(new Vec3(x, y, z), Vec3.ZERO, yRot, xRot),
+            net.minecraft.world.entity.PositionPath.of(new Vec3(x, y, z)),
+            yRot,
+            xRot,
             onGround
         );
     }
@@ -55,7 +57,7 @@ public class PacketHelper {
 
         // Try to construct ServerEntity with dummy values
         try {
-            serverEntity = new ServerEntity(null, entity, 1, false, EMPTY_SYNCHRONIZER);
+            serverEntity = new ServerEntity(null, entity, net.minecraft.world.entity.UpdateInterval.periodic(1), false, EMPTY_SYNCHRONIZER);
         } catch (Exception e) {}
 
         // Error while trying to construct, possibly mod incompatibility? Try bypassing the constructor
