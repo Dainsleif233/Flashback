@@ -220,13 +220,19 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     }
 
     @Unique
+    private static boolean replayUiErrorLogged = false;
+
+    @Unique
     private void drawReplayUi() {
         if (!RenderSystem.isOnRenderThread()) return;
         if (!Flashback.isInReplay() || Flashback.EXPORT_JOB != null) return;
         try {
             ReplayUI.drawOverlay();
         } catch (Throwable t) {
-            Flashback.LOGGER.error("Replay UI draw failed", t);
+            if (!replayUiErrorLogged) {
+                replayUiErrorLogged = true;
+                Flashback.LOGGER.error("Replay UI draw failed (logged once)", t);
+            }
         }
     }
 
