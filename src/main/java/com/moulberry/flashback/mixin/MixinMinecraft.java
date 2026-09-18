@@ -121,7 +121,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         int frameWidth = ReplayUI.frameWidth;
         int frameHeight = ReplayUI.frameHeight;
         // If ImGui layout isn't ready, present the raw game frame (avoids title↔void flicker)
-        if (!ReplayUI.isActive() || ReplayUI.compositeOnTop == null || frameWidth <= 8 || frameHeight <= 8) {
+        if (ReplayUI.compositeOnTop == null || frameWidth <= 8 || frameHeight <= 8) {
             original.call(instance, commandEncoder, textureView);
             return;
         }

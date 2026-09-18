@@ -474,16 +474,14 @@ public class ReplayUI {
             return false;
         }
 
-        if (Minecraft.getInstance().gui.hud.isHidden()) {
+        // In a loaded replay world the editor UI is available regardless of recorded game mode
+        // (recordings may be survival/adventure; 26.3 also keeps client gameMode unset for a while).
+        if (Minecraft.getInstance().level == null || Minecraft.getInstance().player == null) {
             return false;
         }
-
-        MultiPlayerGameMode gameMode = Minecraft.getInstance().gameMode;
-        if (gameMode == null) return false;
-        if (gameMode.getPlayerMode() != GameType.SPECTATOR) return false;
-        if (Minecraft.getInstance().level == null) return false;
-        if (Minecraft.getInstance().player == null) return false;
-        if (Minecraft.getInstance().gui.overlay() != null) return false;
+        if (Minecraft.getInstance().gui.overlay() != null) {
+            return false;
+        }
         return true;
     }
 
