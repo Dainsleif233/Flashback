@@ -89,15 +89,7 @@ public class FramebufferUtils {
                 }
             }
         } catch (Throwable t) {
-            // Pipeline compile can fail while 26.3 shaders are still catching up;
-            // copy full texture instead of crashing the frame.
-            try {
-                GpuTexture src = from != null ? from.texture() : null;
-                GpuTexture dst = to.getColorTexture();
-                if (src != null && dst != null && !src.isClosed() && !dst.isClosed()) {
-                    RenderSystem.getDevice().createCommandEncoder().copyTextureToTexture(src, dst, 0, 0, 0, 0, 0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
-                }
-            } catch (Throwable ignored) {}
+            // Pipeline compile can fail; skip blit rather than crash the frame.
         }
     }
 
