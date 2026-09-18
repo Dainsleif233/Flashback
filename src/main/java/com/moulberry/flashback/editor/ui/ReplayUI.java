@@ -605,9 +605,9 @@ public class ReplayUI {
         }
 
         imguiGlfw.newFrame();
-        ImGui.newFrame();
 
-        // 26.3: game window is SDL; GLFW may report ~32x32. Force real MC window metrics.
+        // 26.3: GLFW on the SDL window reports ~32x32. Override BEFORE ImGui.newFrame()
+        // so dock layout uses real Minecraft window metrics (not after newFrame).
         Window mcWindow = Minecraft.getInstance().getWindow();
         float displayW = mcWindow.getScreenWidth();
         float displayH = mcWindow.getScreenHeight();
@@ -620,6 +620,8 @@ public class ReplayUI {
                 io.setDisplayFramebufferScale(fbW / displayW, fbH / displayH);
             }
         }
+
+        ImGui.newFrame();
 
         confirmPressed = ImGui.isKeyPressed(ImGuiKey.Enter);
         cancelPressed = ImGui.isKeyPressed(ImGuiKey.Escape);
@@ -636,6 +638,13 @@ public class ReplayUI {
 
         // The main menu bar can disconnect us, so make sure to check if the UI should still be active here
         if (!isActiveInternal()) {
+            // Still draw timeline/visual panels while a replay world exists
+            if (Flashback.isInReplay() && Minecraft.getInstance().level != null) {
+                try {
+                    VisualsWindow.render();
+                    TimelineWindow.render();
+                } catch (Throwable ignored) {}
+            }
             ImGui.render();
             ImGuiHelper.endFrame();
 
