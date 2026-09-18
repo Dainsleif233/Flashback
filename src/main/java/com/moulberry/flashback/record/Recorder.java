@@ -98,6 +98,7 @@ import java.lang.ref.WeakReference;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -634,12 +635,14 @@ public class Recorder {
         }
 
         // Update swinging
-        if (player.swinging && (!this.wasSwinging || this.lastSwingTime > player.swingTime)) {
-            int animation = player.swingingArm == InteractionHand.MAIN_HAND ? ClientboundAnimatePacket.SWING_MAIN_HAND : ClientboundAnimatePacket.SWING_OFF_HAND;
-            gamePackets.add(new ClientboundAnimatePacket(player, animation));
+        boolean swinging = player.isSwinging();
+        if (swinging && !this.wasSwinging) {
+            var swing = player.getCurrentSwing();
+            if (swing != null) {
+                gamePackets.add(new net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket(player, swing.hand(), swing.animation()));
+            }
         }
-        this.lastSwingTime = player.swingTime;
-        this.wasSwinging = player.swinging;
+        this.wasSwinging = swinging;
 
         gamePackets.add(new ClientboundSetEntityMotionPacket(player.getId(), player.getDeltaMovement()));
 
@@ -684,8 +687,9 @@ public class Recorder {
 
             var interpolation = entity.getInterpolation();
             if (interpolation != null && interpolation.hasActiveInterpolation()) {
-                var xyz = interpolation.position();
-                position = new Position(xyz.x, xyz.y, xyz.z, interpolation.yRot(), interpolation.xRot(), headRot, entity.onGround());
+                var target = interpolation.target();
+                var xyz = target.position();
+                position = new Position(xyz.x, xyz.y, xyz.z, target.yRot(), target.xRot(), headRot, entity.onGround());
             } else {
                 var xyz = entity.trackingPosition();
                 position = new Position(xyz.x, xyz.y, xyz.z, entity.getYRot(), entity.getXRot(), headRot, entity.onGround());
@@ -876,7 +880,7 @@ public class Recorder {
         // Convert player chat packets into system chat packets
         if (packet instanceof ClientboundPlayerChatPacket playerChatPacket) {
             try {
-                Component content = playerChatPacket.unsignedContent() != null ? playerChatPacket.unsignedContent() : Component.literal(playerChatPacket.body().content());
+                Component content = playerChatPacket.unsignedContent().orElseGet(() -> Component.literal(playerChatPacket.body().content()));
                 Component decorated = playerChatPacket.chatType().decorate(content);
                 packet = new ClientboundSystemChatPacket(decorated, false);
             } catch (Exception e) {
@@ -976,7 +980,7 @@ public class Recorder {
         // Login packet
         long hashedSeed = level.getBiomeManager().biomeZoomSeed;
         CommonPlayerSpawnInfo commonPlayerSpawnInfo = new CommonPlayerSpawnInfo(level.dimensionTypeRegistration(), level.dimension(), hashedSeed,
-            gameMode.getPlayerMode(), gameMode.getPreviousPlayerMode(), level.isDebug(), level.getLevelData().isFlat, Optional.empty(), 0,
+            gameMode.getPlayerMode(), Optional.ofNullable(gameMode.getPreviousPlayerMode()), level.isDebug(), level.getLevelData().isFlat, Optional.empty(), 0,
                 level.getSeaLevel());
         var loginPacket = new ClientboundLoginPacket(localPlayer.getId(), level.getLevelData().isHardcore(), connection.levels(),
             1, minecraft.options.getEffectiveRenderDistance(), level.getServerSimulationDistance(),
@@ -1250,8 +1254,8 @@ public class Recorder {
             int centerX = localPlayer.getBlockX() >> 4;
             int centerZ = localPlayer.getBlockZ() >> 4;
             levelChunkPackets.sort(Comparator.comparingInt(task -> {
-                int dx = task.getX() - centerX;
-                int dz = task.getZ() - centerZ;
+                int dx = task.x() - centerX;
+                int dz = task.z() - centerZ;
                 return dx*dx + dz*dz;
             }));
 

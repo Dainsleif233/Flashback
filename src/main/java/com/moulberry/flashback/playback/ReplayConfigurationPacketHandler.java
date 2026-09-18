@@ -40,6 +40,10 @@ import java.util.*;
 
 public class ReplayConfigurationPacketHandler implements ClientConfigurationPacketListener {
 
+    @Override
+    public void handlePostEffects(net.minecraft.network.protocol.common.ClientboundPostEffectsPacket packet) {
+    }
+
     private final ReplayServer replayServer;
     private Map<ResourceKey<? extends Registry<?>>, RegistryDataLoader.NetworkedRegistryData> pendingRegistryMap = null;
     private Map<ResourceKey<? extends Registry<?>>, TagNetworkSerialization.NetworkPayload> pendingTags = null;
@@ -328,7 +332,7 @@ public class ReplayConfigurationPacketHandler implements ClientConfigurationPack
         if (this.pendingTags == null) {
             this.pendingTags = new HashMap<>();
         }
-        this.pendingTags.putAll(clientboundUpdateTagsPacket.getTags());
+        this.pendingTags.putAll(clientboundUpdateTagsPacket.tags());
     }
 
     @Override
