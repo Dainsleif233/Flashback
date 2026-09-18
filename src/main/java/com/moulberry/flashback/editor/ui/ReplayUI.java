@@ -454,7 +454,7 @@ public class ReplayUI {
         mouseY = y;
         if (imGuiIO != null) {
             try {
-                imGuiIO.addMousePosEvent(x, y);
+                imGuiIO.setMousePos(x, y);
             } catch (Throwable ignored) {}
         }
     }
@@ -470,14 +470,15 @@ public class ReplayUI {
             return;
         }
         try {
-            imGuiIO.addMouseButtonEvent(button, down);
+            imGuiIO.setMouseDown(button, down);
         } catch (Throwable ignored) {}
     }
 
     public static void feedMouseWheel(float x, float y) {
         if (imGuiIO != null) {
             try {
-                imGuiIO.addMouseWheelEvent(x, y);
+                imGuiIO.setMouseWheel(x);
+                imGuiIO.setMouseWheelH(y);
             } catch (Throwable ignored) {}
         }
     }

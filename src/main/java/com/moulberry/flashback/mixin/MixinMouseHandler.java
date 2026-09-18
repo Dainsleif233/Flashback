@@ -49,7 +49,15 @@ public abstract class MixinMouseHandler {
         if (!ReplayUI.isActive()) {
             return;
         }
-        ReplayUI.feedMouseMove((float) x, (float) y);
+        // Use scaled window coordinates so they match ImGui display size
+        double sx = x;
+        double sy = y;
+        try {
+            var windowObj = this.minecraft.getWindow();
+            sx = MouseHandler.getScaledXPos(windowObj, x);
+            sy = MouseHandler.getScaledYPos(windowObj, y);
+        } catch (Throwable ignored) {}
+        ReplayUI.feedMouseMove((float) sx, (float) sy);
 
         double dx = x - this.xpos;
         double dy = y - this.ypos;
@@ -58,7 +66,8 @@ public abstract class MixinMouseHandler {
 
         // Camera: turn like vanilla when left-hold is on the spectator viewport
         if (ReplayUI.wantsCameraGrab() && this.minecraft.player != null) {
-            float sensitivity = (float) (this.minecraft.options.getMouseSensitivity() * 0.6F + 0.2F);
+            double sens = this.minecraft.options.sensitivity().get();
+            float sensitivity = (float) (sens * 0.6F + 0.2F);
             double turnX = dx * sensitivity * sensitivity * sensitivity * 8.0;
             double turnY = dy * sensitivity * sensitivity * sensitivity * 8.0;
             this.minecraft.player.turn(turnX, turnY);
