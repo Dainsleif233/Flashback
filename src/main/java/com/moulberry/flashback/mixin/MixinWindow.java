@@ -76,6 +76,13 @@ public abstract class MixinWindow implements WindowExt {
             this.overrideFramebufferHeight = -1;
         }
 
+        // Keep private window fields in sync with getWidth()/getHeight() overrides.
+        // Otherwise render targets oscillate between two sizes and flicker title↔void.
+        if (this.overrideFramebufferWidth > 0 && this.overrideFramebufferHeight > 0) {
+            this.framebufferWidth = this.overrideFramebufferWidth;
+            this.framebufferHeight = this.overrideFramebufferHeight;
+        }
+
         if (callFramebufferSizeChanged && lastWidth != this.overrideFramebufferWidth && lastHeight != this.overrideFramebufferHeight) {
             this.eventHandler.framebufferSizeChanged();
         }

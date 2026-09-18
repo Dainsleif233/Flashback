@@ -490,8 +490,14 @@ public class ReplayUI {
     }
 
     public static boolean shouldModifyViewport() {
+        // 26.3: avoid resizing the vanilla framebuffer every frame (flicker title↔void).
+        // Only letterbox the game view when the user explicitly asked for a custom aspect.
         EditorState editorState = EditorStateManager.getCurrent();
-        return isActive() && editorState != null && editorState.replayVisuals.sizing != Sizing.UNDERLAY;
+        if (editorState == null || !isActive()) {
+            return false;
+        }
+        Sizing sizing = editorState.replayVisuals.sizing;
+        return sizing == Sizing.CHANGE_ASPECT_RATIO;
     }
 
     private static void transitionActiveState(boolean active) {

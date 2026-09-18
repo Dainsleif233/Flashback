@@ -28,6 +28,7 @@ import com.moulberry.flashback.playback.ReplayServer;
 import com.moulberry.flashback.ext.MinecraftExt;
 import com.moulberry.flashback.editor.ui.ReplayUI;
 import com.moulberry.flashback.visuals.AccurateEntityPositionHandler;
+import com.moulberry.flashback.Flashback;
 import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.server.MinecraftServer;
@@ -184,11 +185,23 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         original.call(instance, camera);
     }
 
+    @Inject(method = "renderFrame", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.BEFORE), require = 0)
+    public void beforeMainRender(boolean bl, CallbackInfo ci) {
+        // Sync window size overrides before rendering so all systems see one size
+        ((WindowExt) (Object) Minecraft.getInstance().getWindow()).flashback$updateScaledFramebuffer(false);
+    }
+
     @Inject(method = "renderFrame", at= @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.AFTER), require = 0)
     public void afterMainRender(boolean bl, CallbackInfo ci) {
         if (!RenderSystem.isOnRenderThread()) return;
-        ReplayUI.drawOverlay();
-        ((WindowExt)(Object)Minecraft.getInstance().getWindow()).flashback$updateScaledFramebuffer(true);
+        try {
+            // Only draw editor UI when replay UI is actually active; avoid GL state churn every frame
+            if (ReplayUI.isActive()) {
+                ReplayUI.drawOverlay();
+            }
+        } catch (Throwable t) {
+            Flashback.LOGGER.error("Replay UI draw failed", t);
+        }
     }
 
     @Unique
@@ -205,13 +218,7 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         ReplayServer replayServer = Flashback.getReplayServer();
         Flashback.updateIsInReplay();
 
-        // 26.3: force-clear stale loading overlay once replay client has a level/player
-        if (replayServer != null && this.level != null && this.player != null) {
-            if (this.gui != null && this.gui.overlay() != null) {
-                this.gui.setOverlay(null);
-            }
-        }
-
+        // Do not force-clear loading overlay every tick — that fights vanilla fade and causes flicker
         boolean inReplay = replayServer != null;
         if (inReplay != inReplayLast) {
             inReplayLast = inReplay;
