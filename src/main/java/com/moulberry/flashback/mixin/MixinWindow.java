@@ -140,9 +140,11 @@ public abstract class MixinWindow implements WindowExt {
         } else if (ReplayUI.shouldModifyViewport()) {
             int fbw = ReplayUI.getNewGameWidth(this.calculateWidthScaleFactor());
             int fbh = ReplayUI.getNewGameHeight(this.calculateHeightScaleFactor());
+            int realFbW = this.realFramebufferWidth > 0 ? this.realFramebufferWidth : this.framebufferWidth;
+            int realFbH = this.realFramebufferHeight > 0 ? this.realFramebufferHeight : this.framebufferHeight;
 
             int j = 1;
-            while (j != scale && j < fbw && j < fbh && fbw / (j + 1) >= 320 && fbh / (j + 1) >= 240) {
+            while (j != scale && j < realFbW && j < realFbH && realFbW / (j + 1) >= 320 && realFbH / (j + 1) >= 240) {
                 j++;
             }
             if (forceEven && j % 2 != 0) {

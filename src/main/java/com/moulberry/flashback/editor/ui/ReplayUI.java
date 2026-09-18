@@ -456,6 +456,7 @@ public class ReplayUI {
     }
 
     public static int getNewGameWidth(float scale) {
+        // frame* is the ImGui central dock content size; use it directly
         return Math.max(1, Math.round(frameWidth * scale));
     }
 
@@ -490,8 +491,8 @@ public class ReplayUI {
     }
 
     public static boolean shouldModifyViewport() {
-        // Letterbox game view for editor panels when UI is active (KEEP/CHANGE aspect).
-        // Size is synced before render so this should not flicker like the 26.3 pre-fix path.
+        // Letterbox game view for editor panels when UI is active.
+        // Scale factors use pre-override window metrics so this should stay stable.
         if (!isActive()) {
             return false;
         }
