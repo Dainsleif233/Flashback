@@ -49,14 +49,9 @@ public abstract class MixinMouseHandler {
         if (!ReplayUI.isActive()) {
             return;
         }
-        // Use scaled window coordinates so they match ImGui display size
+        // Raw event coordinates — same space as Window.getWidth()/getHeight() used for ImGui displaySize
         double sx = x;
         double sy = y;
-        try {
-            var windowObj = this.minecraft.getWindow();
-            sx = MouseHandler.getScaledXPos(windowObj, x);
-            sy = MouseHandler.getScaledYPos(windowObj, y);
-        } catch (Throwable ignored) {}
         ReplayUI.feedMouseMove((float) sx, (float) sy);
 
         double dx = x - this.xpos;

@@ -598,8 +598,7 @@ public class ReplayUI {
                 Minecraft.getInstance().mouseHandler.setIgnoreFirstMove();
             }
         } else {
-            // Free the mouse cursor when the replay editor becomes active.
-            // 26.3 windows are SDL-backed — use Minecraft mouse handler, not GLFW.
+            // Free the mouse cursor when the replay editor becomes active (SDL path)
             try {
                 Minecraft.getInstance().mouseHandler.releaseMouse();
                 Minecraft.getInstance().mouseHandler.setIgnoreFirstMove();
@@ -687,22 +686,17 @@ public class ReplayUI {
             }
         }
 
-        imguiGlfw.newFrame();
-
-        // 26.3: GLFW on the SDL window reports bogus size/mouse. Force real MC metrics
-        // BEFORE ImGui.newFrame(), then re-apply Minecraft mouse coordinates.
+        // 26.3/SDL: do not call GLFW newFrame — it clobbers display size and mouse.
+        // Use Minecraft window metrics and cached raw mouse coordinates instead.
         Window mcWindow = Minecraft.getInstance().getWindow();
-        float displayW = mcWindow.getScreenWidth();
-        float displayH = mcWindow.getScreenHeight();
-        if (displayW > 1 && displayH > 1) {
-            ImGuiIO io = ReplayUI.getIO();
-            io.setDisplaySize(displayW, displayH);
-            float fbW = mcWindow.getWidth();
-            float fbH = mcWindow.getHeight();
-            if (fbW > 0 && fbH > 0) {
-                io.setDisplayFramebufferScale(fbW / displayW, fbH / displayH);
-            }
-        }
+        ImGuiIO io = ReplayUI.getIO();
+        int dispW = Math.max(1, mcWindow.getWidth());
+        int dispH = Math.max(1, mcWindow.getHeight());
+        io.setDisplaySize((float) dispW, (float) dispH);
+        io.setDisplayFramebufferScale(1f, 1f);
+        try {
+            io.setDeltaTime(1f / 60f);
+        } catch (Throwable ignored) {}
         reapplyMinecraftMouse();
 
         ImGui.newFrame();
