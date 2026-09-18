@@ -260,11 +260,13 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
         ReplayServer replayServer = Flashback.getReplayServer();
         Flashback.updateIsInReplay();
 
-        // Client can remain on the loading overlay after the replay server is ready.
-        if (replayServer != null && this.gui != null && this.gui.overlay() != null) {
-            // Wait until the integrated server has finished preparing, then dismiss overlay
-            if (replayServer.isRunning() || this.level != null || this.player != null) {
-                this.gui.setOverlay(null);
+        // Dismiss loading overlay only after the client has a world — do not
+        // fight resource-reload overlays every tick (that causes loading-screen jitter).
+        if (replayServer != null && this.gui != null && this.level != null && this.gui.overlay() != null) {
+            this.gui.setOverlay(null);
+            if (this.gui.screen() instanceof net.minecraft.client.gui.screens.ProgressScreen
+                    || this.gui.screen() instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) {
+                this.gui.setScreen(null);
             }
         }
 

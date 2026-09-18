@@ -1,49 +1,29 @@
 package com.moulberry.flashback;
 
 import com.mojang.blaze3d.platform.Window;
-import org.lwjgl.glfw.GLFW;
 
 public class WindowSizeTracker {
 
     /**
-     * Some mods (e.g. qdaa) like to manipulate the framebuffer width
-     * This can cause rendering issues since we don't know the real width
-     * This helper will cache and calculate the real framebuffer width to avoid this issue
+     * 26.3 windows are SDL-backed. Do not query GLFW on the window handle —
+     * it returns bogus sizes (e.g. 32x32) and causes framebuffer resize jitter.
+     * Prefer the values already maintained by the Minecraft Window class.
      */
 
-    private static int lastFramebufferWidth;
-    private static int lastFramebufferHeight;
-    private static int realFramebufferWidth;
-    private static int realFramebufferHeight;
-
     public static int getWidth(Window window) {
-        if (lastFramebufferWidth != window.framebufferWidth) {
-            recalculate(window);
+        if (window == null) {
+            return 1;
         }
-
-        return realFramebufferWidth;
+        int w = window.framebufferWidth;
+        return w > 0 ? w : Math.max(1, window.getWidth());
     }
-
 
     public static int getHeight(Window window) {
-        if (lastFramebufferHeight != window.framebufferHeight) {
-            recalculate(window);
+        if (window == null) {
+            return 1;
         }
-
-        return realFramebufferHeight;
-    }
-
-    private static void recalculate(Window window) {
-        // Calculate real framebuffer width/height
-        int[] width = new int[1];
-        int[] height = new int[1];
-        GLFW.glfwGetFramebufferSize(window.handle(), width, height);
-        realFramebufferWidth = width[0] > 0 ? width[0] : 1;
-        realFramebufferHeight = height[0] > 0 ? height[0] : 1;
-
-        // Update cached values
-        lastFramebufferWidth = window.framebufferWidth;
-        lastFramebufferHeight = window.framebufferHeight;
+        int h = window.framebufferHeight;
+        return h > 0 ? h : Math.max(1, window.getHeight());
     }
 
 }

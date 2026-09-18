@@ -18,13 +18,11 @@ public class MixinLoadingOverlay {
 
     @Shadow @Final private Minecraft minecraft;
 
-    // Make overlay disappear instantly if inside replay
+    // Dismiss only when the replay client already has a world
     @Inject(method = "extractRenderState", at = @At("RETURN"), require = 0)
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int i, int j, float f, CallbackInfo ci) {
-        if (Flashback.isInReplay() || Flashback.getReplayServer() != null) {
-            if (this.minecraft.level != null || this.minecraft.getSingleplayerServer() instanceof com.moulberry.flashback.playback.ReplayServer) {
-                this.minecraft.gui.setOverlay(null);
-            }
+        if ((Flashback.isInReplay() || Flashback.getReplayServer() != null) && this.minecraft.level != null) {
+            this.minecraft.gui.setOverlay(null);
         }
     }
 
