@@ -24,6 +24,8 @@ base {
 }
 
 repositories {
+    mavenLocal()
+    mavenCentral()
     maven {
         url = "https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1"
         content {
@@ -54,6 +56,19 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // MC 26.3 uses SDL and no longer ships GLFW; Flashback UI/keybinds still need GLFW APIs
+    // Bundle GLFW + natives so ReplayUI/keybinds can load at runtime.
+    shadow(implementation("org.lwjgl:lwjgl:3.4.3"))
+    shadow(implementation("org.lwjgl:lwjgl-glfw:3.4.3"))
+    shadow(api("org.lwjgl:lwjgl-glfw:3.4.3:natives-windows"))
+    shadow(api("org.lwjgl:lwjgl-glfw:3.4.3:natives-linux"))
+    shadow(api("org.lwjgl:lwjgl-glfw:3.4.3:natives-macos"))
+    shadow(implementation("org.lwjgl:lwjgl-openal:3.4.3"))
+    shadow(implementation("org.lwjgl:lwjgl-opengl:3.4.3"))
+    shadow(implementation("org.lwjgl:lwjgl-stb:3.4.3"))
+    shadow(implementation("org.lwjgl:lwjgl-jemalloc:3.4.3"))
+    compileOnly("com.mojang:authlib:10.0.77")
 
     // Login in dev environment
     runtimeOnly("me.djtheredstoner:DevAuth-fabric:1.1.2")
