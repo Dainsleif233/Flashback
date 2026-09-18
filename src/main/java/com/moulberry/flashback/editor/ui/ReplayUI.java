@@ -425,6 +425,21 @@ public class ReplayUI {
         return imguiGlfw.isGrabbed() && imguiGlfw.getMouseHandledBy() == CustomImGuiImplGlfw.MouseHandledBy.GAME;
     }
 
+    /**
+     * 26.3/SDL: camera grab only while left button is held on the spectator viewport.
+     * Default state is a free mouse cursor for the editor UI.
+     */
+    public static boolean wantsCameraGrab() {
+        if (!isActive()) {
+            return false;
+        }
+        if (imguiGlfw != null && imguiGlfw.isGrabbed()
+                && imguiGlfw.getMouseHandledBy() == CustomImGuiImplGlfw.MouseHandledBy.GAME) {
+            return true;
+        }
+        return isFrameHovered && ImGui.isMouseDown(0);
+    }
+
     public static void setInfoOverlay(String text) {
         infoOverlayText = text;
         infoOverlayEndMillis = System.currentTimeMillis() + 5000;
@@ -525,12 +540,12 @@ public class ReplayUI {
                 Minecraft.getInstance().mouseHandler.setIgnoreFirstMove();
             }
         } else {
-            // Forcefully ungrab the cursor
-            long handle = ImGui.getMainViewport().getPlatformHandle();
-            if (GLFW.glfwGetInputMode(handle, GLFW.GLFW_CURSOR) != GLFW.GLFW_CURSOR_NORMAL) {
-                GLFW.glfwSetInputMode(handle, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);
-                GLFW.glfwSetCursorPos(handle, ImGui.getMainViewport().getSizeX()/2f, ImGui.getMainViewport().getSizeY()/2f);
-            }
+            // Free the mouse cursor when the replay editor becomes active.
+            // 26.3 windows are SDL-backed — use Minecraft mouse handler, not GLFW.
+            try {
+                Minecraft.getInstance().mouseHandler.releaseMouse();
+                Minecraft.getInstance().mouseHandler.setIgnoreFirstMove();
+            } catch (Throwable ignored) {}
         }
 
         imguiGlfw.setViewportWindowsHidden(!activeLastFrame);
@@ -928,6 +943,18 @@ public class ReplayUI {
         ExportQueueWindow.render();
 
         WindowType.renderAll();
+
+        // Vanilla mouse grab/release for spectator camera (SDL path)
+        try {
+            var mouse = Minecraft.getInstance().mouseHandler;
+            boolean wantGrab = ReplayUI.wantsCameraGrab();
+            boolean grabbed = mouse.isMouseGrabbed();
+            if (wantGrab && !grabbed) {
+                mouse.grabMouse();
+            } else if (!wantGrab && grabbed && isActive()) {
+                mouse.releaseMouse();
+            }
+        } catch (Throwable ignored) {}
 
         ReplayServer replayServer = Flashback.getReplayServer();
         if (replayServer != null) {
