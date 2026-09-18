@@ -194,11 +194,10 @@ public abstract class MixinMinecraft extends ReentrantBlockableEventLoop<Runnabl
     @Inject(method = "renderFrame", at= @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GameRenderer;render()V", shift = At.Shift.AFTER), require = 0)
     public void afterMainRender(boolean bl, CallbackInfo ci) {
         if (!RenderSystem.isOnRenderThread()) return;
+        // Must run every replay frame: isActive() only becomes true after drawOverlayInternal()
+        if (!Flashback.isInReplay() || Flashback.EXPORT_JOB != null) return;
         try {
-            // Only draw editor UI when replay UI is actually active; avoid GL state churn every frame
-            if (ReplayUI.isActive()) {
-                ReplayUI.drawOverlay();
-            }
+            ReplayUI.drawOverlay();
         } catch (Throwable t) {
             Flashback.LOGGER.error("Replay UI draw failed", t);
         }
