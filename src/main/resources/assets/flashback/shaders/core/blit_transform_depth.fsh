@@ -1,10 +1,11 @@
-#version 150
+#version 330
+#extension GL_ARB_separate_shader_objects : require
 
 uniform sampler2D InSampler;
 
-in vec2 texCoord;
+layout(location = 0) in vec2 texCoord;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 layout(std140) uniform TransformDepth {
     int isZZeroToOne;
@@ -20,12 +21,9 @@ void main() {
         z = z * 2.0 - 1.0;
     }
 
-    // Linearize depth
-    float linear = near * far / (far + z * (near - far));
-    float normalized = linear / max(near, far);
-    if (near > far) {
-        normalized = 1.0 - normalized;
-    }
+    float ndcZ = z;
+    float linear = (2.0 * near * far) / (far + near - ndcZ * (far - near));
+    linear = clamp((linear - near) / max(far - near, 1e-5), 0.0, 1.0);
 
-    fragColor = vec4(normalized, 0.0, 0.0, 0.0);
+    fragColor = vec4(linear, linear, linear, 1.0);
 }

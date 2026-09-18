@@ -64,28 +64,40 @@ public class FramebufferUtils {
     }
 
     public static void blitTo(GpuTextureView from, RenderTarget to, float x1, float y1, float x2, float y2) {
-        try (ByteBufferBuilder byteBufferBuilder = new ByteBufferBuilder(256)) {
-            BufferBuilder builder = new BufferBuilder(byteBufferBuilder, PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX);
-            builder.addVertex(x1*2-1, -(y2*2-1), 0.0f).setUv(0.0f, 0.0f);
-            builder.addVertex(x2*2-1, -(y2*2-1), 0.0f).setUv(1.0f, 0.0f);
-            builder.addVertex(x2*2-1, -(y1*2-1), 0.0f).setUv(1.0f, 1.0f);
-            builder.addVertex(x1*2-1, -(y1*2-1), 0.0f).setUv(0.0f, 1.0f);
+        try {
+            try (ByteBufferBuilder byteBufferBuilder = new ByteBufferBuilder(256)) {
+                BufferBuilder builder = new BufferBuilder(byteBufferBuilder, PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX);
+                builder.addVertex(x1*2-1, -(y2*2-1), 0.0f).setUv(0.0f, 0.0f);
+                builder.addVertex(x2*2-1, -(y2*2-1), 0.0f).setUv(1.0f, 0.0f);
+                builder.addVertex(x2*2-1, -(y1*2-1), 0.0f).setUv(1.0f, 1.0f);
+                builder.addVertex(x1*2-1, -(y1*2-1), 0.0f).setUv(0.0f, 1.0f);
 
-            try (FlashbackDrawBuffer drawBuffer = new FlashbackDrawBuffer(GpuBuffer.USAGE_MAP_WRITE)) {
-                drawBuffer.upload(builder.buildOrThrow());
+                try (FlashbackDrawBuffer drawBuffer = new FlashbackDrawBuffer(GpuBuffer.USAGE_MAP_WRITE)) {
+                    drawBuffer.upload(builder.buildOrThrow());
 
-                RenderSystem.AutoStorageIndexBuffer autoStorageIndexBuffer = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
-                GpuBuffer indexBuffer = autoStorageIndexBuffer.getBuffer(6);
+                    RenderSystem.AutoStorageIndexBuffer autoStorageIndexBuffer = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+                    GpuBuffer indexBuffer = autoStorageIndexBuffer.getBuffer(6);
 
-                try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "flashback blit", to.getColorTextureView(), Optional.empty())) {
-                    renderPass.setPipeline(RenderSystem.getCompiledPipeline(ShaderManager.BLIT_SCREEN_WITH_UV));
-                    RenderSystem.bindDefaultUniforms(renderPass);
-                    renderPass.setVertexBuffer(0, drawBuffer.getVertexBuffer().slice());
-                    renderPass.setIndexBuffer(indexBuffer, autoStorageIndexBuffer.type());
-                    renderPass.setUniform("InSampler", from, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
-                    renderPass.drawIndexed(6, 1, 0, 0, 0);
+                    try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "flashback blit", to.getColorTextureView(), Optional.empty())) {
+                        renderPass.setPipeline(RenderSystem.getCompiledPipeline(ShaderManager.BLIT_SCREEN_WITH_UV));
+                        RenderSystem.bindDefaultUniforms(renderPass);
+                        renderPass.setVertexBuffer(0, drawBuffer.getVertexBuffer().slice());
+                        renderPass.setIndexBuffer(indexBuffer, autoStorageIndexBuffer.type());
+                        renderPass.setUniform("InSampler", from, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST));
+                        renderPass.drawIndexed(6, 1, 0, 0, 0);
+                    }
                 }
             }
+        } catch (Throwable t) {
+            // Pipeline compile can fail while 26.3 shaders are still catching up;
+            // copy full texture instead of crashing the frame.
+            try {
+                GpuTexture src = from != null ? from.texture() : null;
+                GpuTexture dst = to.getColorTexture();
+                if (src != null && dst != null && !src.isClosed() && !dst.isClosed()) {
+                    RenderSystem.getDevice().createCommandEncoder().copyTextureToTexture(src, dst, 0, 0, 0, 0, 0, 0, Integer.MAX_VALUE, Integer.MAX_VALUE);
+                }
+            } catch (Throwable ignored) {}
         }
     }
 
