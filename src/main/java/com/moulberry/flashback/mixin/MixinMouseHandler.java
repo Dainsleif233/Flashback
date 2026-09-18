@@ -75,11 +75,13 @@ public abstract class MixinMouseHandler {
             return;
         }
         boolean down = action != 0;
-        ReplayUI.feedMouseButton(info.button(), down);
+        int rawButton = info.button();
+        ReplayUI.feedMouseButton(rawButton, down);
 
-        // Let ImGui panels receive clicks; do not forward to the game
-        // unless the spectator viewport wants camera grab.
-        if (!ReplayUI.wantsCameraGrab() && ReplayUI.getIO() != null && ReplayUI.getIO().getWantCaptureMouse()) {
+        // ImGui already consumed the click (side panels etc.)
+        if (!ReplayUI.wantsCameraGrab()
+                && ReplayUI.getIO() != null
+                && ReplayUI.getIO().getWantCaptureMouse()) {
             ci.cancel();
         }
     }

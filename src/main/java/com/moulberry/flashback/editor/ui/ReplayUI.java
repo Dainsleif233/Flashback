@@ -461,16 +461,29 @@ public class ReplayUI {
 
     private static final int IMGUI_MOUSE_BUTTON_COUNT = 5;
 
+    /**
+     * 26.3 MouseHandler events may use SDL button ids (1=left, 2=middle, 3=right).
+     * Map to ImGui (0=left, 1=right, 2=middle).
+     */
+    private static int toImGuiMouseButton(int button) {
+        return switch (button) {
+            case 1 -> 0; // SDL left
+            case 3 -> 1; // SDL right
+            case 2 -> 2; // SDL middle
+            default -> button;
+        };
+    }
+
     public static void feedMouseButton(int button, boolean down) {
-        if (button >= 0 && button < mouseDown.length) {
-            mouseDown[button] = down;
+        int imguiButton = toImGuiMouseButton(button);
+        if (imguiButton >= 0 && imguiButton < mouseDown.length) {
+            mouseDown[imguiButton] = down;
         }
-        // ImGui only accepts buttons [0, ImGuiMouseButton_COUNT)
-        if (button < 0 || button >= IMGUI_MOUSE_BUTTON_COUNT || imGuiIO == null) {
+        if (imguiButton < 0 || imguiButton >= IMGUI_MOUSE_BUTTON_COUNT || imGuiIO == null) {
             return;
         }
         try {
-            imGuiIO.setMouseDown(button, down);
+            imGuiIO.setMouseDown(imguiButton, down);
         } catch (Throwable ignored) {}
     }
 
@@ -694,6 +707,9 @@ public class ReplayUI {
         int dispH = Math.max(1, mcWindow.getHeight());
         io.setDisplaySize((float) dispW, (float) dispH);
         io.setDisplayFramebufferScale(1f, 1f);
+        // Keep ImGui viewport metrics in the same pixel space as displaySize/composite blit
+        viewportSizeX = dispW;
+        viewportSizeY = dispH;
         try {
             io.setDeltaTime(1f / 60f);
         } catch (Throwable ignored) {}
