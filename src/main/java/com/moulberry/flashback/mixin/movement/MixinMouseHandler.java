@@ -15,6 +15,11 @@ public class MixinMouseHandler {
     @WrapOperation(method = "turnPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"))
     public void turnPlayer_turn(LocalPlayer instance, double x, double y, Operation<Void> original) {
         if (Flashback.isInReplay()) {
+            // Only turn camera when replay UI wants camera grab (left-hold on viewport)
+            if (com.moulberry.flashback.editor.ui.ReplayUI.isActive()
+                    && !com.moulberry.flashback.editor.ui.ReplayUI.wantsCameraGrab()) {
+                return;
+            }
             FlashbackConfigV1 config = Flashback.getConfig();
             if (config.editorMovement.flightLockYaw) {
                 x = 0.0f;

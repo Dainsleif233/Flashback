@@ -3,6 +3,7 @@ package com.moulberry.flashback.mixin;
 import com.moulberry.flashback.Flashback;
 import com.moulberry.flashback.editor.ui.ReplayUI;
 import net.minecraft.client.MouseHandler;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,8 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinMouseHandler {
 
     /**
-     * Replay editor: cursor is free by default; grab only while left-click
-     * is held on the spectator viewport (26.3 uses SDL — not GLFW).
+     * Replay editor: cursor free by default; grab only while left-click is held
+     * on the spectator viewport. Feed Minecraft/SDL mouse events into ImGui.
      */
     @Inject(method = "isMouseGrabbed", at=@At("HEAD"), cancellable = true)
     public void isMouseGrabbed(CallbackInfoReturnable<Boolean> cir) {
@@ -22,6 +23,30 @@ public class MixinMouseHandler {
             cir.setReturnValue(ReplayUI.wantsCameraGrab());
         } else if (Flashback.isExporting()) {
             cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "onMove", at = @At("HEAD"))
+    public void onMove(long window, double x, double y, double z, double w, CallbackInfo ci) {
+        if (ReplayUI.isActive()) {
+            ReplayUI.feedMouseMove((float) x, (float) y);
+        }
+    }
+
+    @Inject(method = "onButton", at = @At("HEAD"))
+    public void onButton(long window, MouseButtonInfo info, int action, CallbackInfo ci) {
+        if (!ReplayUI.isActive() || info == null) {
+            return;
+        }
+        // GLFW-style: 1 = press, 0 = release
+        boolean down = action != 0;
+        ReplayUI.feedMouseButton(info.button(), down);
+    }
+
+    @Inject(method = "onScroll", at = @At("HEAD"))
+    public void onScroll(long window, double x, double y, CallbackInfo ci) {
+        if (ReplayUI.isActive()) {
+            ReplayUI.feedMouseWheel((float) x, (float) y);
         }
     }
 
@@ -38,7 +63,6 @@ public class MixinMouseHandler {
             ci.cancel();
             return;
         }
-        // In replay, ignore vanilla grab unless camera capture is wanted
         if (ReplayUI.isActive() && !ReplayUI.wantsCameraGrab()) {
             ci.cancel();
         }
@@ -46,7 +70,6 @@ public class MixinMouseHandler {
 
     @Inject(method = "releaseMouse", at=@At("HEAD"), cancellable = true)
     public void releaseMouse(CallbackInfo ci) {
-        // Always allow release in replay so the editor cursor can appear
         if (Flashback.isExporting()) {
             ci.cancel();
         }

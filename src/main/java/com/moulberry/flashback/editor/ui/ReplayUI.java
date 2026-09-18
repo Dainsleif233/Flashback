@@ -437,7 +437,61 @@ public class ReplayUI {
                 && imguiGlfw.getMouseHandledBy() == CustomImGuiImplGlfw.MouseHandledBy.GAME) {
             return true;
         }
-        return isFrameHovered && ImGui.isMouseDown(0);
+        return isFrameHovered && isMouseButtonDown(0);
+    }
+
+    @Unique
+    private static float mouseX = -10000f;
+    @Unique
+    private static float mouseY = -10000f;
+    @Unique
+    private static final boolean[] mouseDown = new boolean[8];
+
+    public static boolean isMouseButtonDown(int button) {
+        return button >= 0 && button < mouseDown.length && mouseDown[button];
+    }
+
+    /** Feed SDL/Minecraft mouse coordinates into ImGui (GLFW backend is invalid on 26.3). */
+    public static void feedMouseMove(float x, float y) {
+        mouseX = x;
+        mouseY = y;
+        if (imGuiIO != null) {
+            try {
+                imGuiIO.addMousePosEvent(x, y);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public static void feedMouseButton(int button, boolean down) {
+        if (button >= 0 && button < mouseDown.length) {
+            mouseDown[button] = down;
+        }
+        if (imGuiIO != null) {
+            try {
+                imGuiIO.addMouseButtonEvent(button, down);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    public static void feedMouseWheel(float x, float y) {
+        if (imGuiIO != null) {
+            try {
+                imGuiIO.addMouseWheelEvent(x, y);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    /** Re-apply cached Minecraft mouse state after GLFW newFrame clobbers it. */
+    private static void reapplyMinecraftMouse() {
+        if (imGuiIO == null) {
+            return;
+        }
+        try {
+            imGuiIO.addMousePosEvent(mouseX, mouseY);
+            for (int i = 0; i < mouseDown.length; i++) {
+                imGuiIO.addMouseButtonEvent(i, mouseDown[i]);
+            }
+        } catch (Throwable ignored) {}
     }
 
     public static void setInfoOverlay(String text) {
@@ -631,8 +685,8 @@ public class ReplayUI {
 
         imguiGlfw.newFrame();
 
-        // 26.3: GLFW on the SDL window reports ~32x32. Override BEFORE ImGui.newFrame()
-        // so dock layout uses real Minecraft window metrics (not after newFrame).
+        // 26.3: GLFW on the SDL window reports bogus size/mouse. Force real MC metrics
+        // BEFORE ImGui.newFrame(), then re-apply Minecraft mouse coordinates.
         Window mcWindow = Minecraft.getInstance().getWindow();
         float displayW = mcWindow.getScreenWidth();
         float displayH = mcWindow.getScreenHeight();
@@ -645,6 +699,7 @@ public class ReplayUI {
                 io.setDisplayFramebufferScale(fbW / displayW, fbH / displayH);
             }
         }
+        reapplyMinecraftMouse();
 
         ImGui.newFrame();
 
